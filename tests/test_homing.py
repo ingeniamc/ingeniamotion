@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any, Callable
 
 import pytest
 
@@ -49,27 +50,113 @@ def _read_position_order_diagnostic_registers(mc, alias):
         POSITION_COMMAND_REGISTER,
         ACTUAL_POSITION_REGISTER,
         ACTUAL_VELOCITY_REGISTER,
+        "COMMU_ANGLE_SENSOR",
+        "COMMU_ANGLE_REF_SENSOR",
+        "CL_VEL_FBK_SENSOR",
+        "CL_POS_FBK_SENSOR",
+        "CL_AUX_FBK_SENSOR",
+        "FBK_DIGENC1_RESOLUTION",
+        "FBK_DIGENC2_RESOLUTION",
+        "FBK_DIGHALL_PAIRPOLES",
+        "CL_VEL_SET_POINT_VALUE",
+        "CL_VEL_REF_VALUE",
+        "CL_VEL_CMD_VALUE",
+        "CL_CUR_Q_SET_POINT",
+        "CL_CUR_D_SET_POINT",
+        "CL_CUR_A_SET_POINT",
+        "CL_CUR_B_SET_POINT",
+        "CL_CUR_C_SET_POINT",
+        "CL_CUR_Q_REF_VALUE",
+        "CL_CUR_D_REF_VALUE",
+        "CL_CUR_Q_VALUE",
+        "CL_CUR_D_VALUE",
+        "CL_CUR_CMD_VALUE",
+        "CL_TOR_FBK_VALUE",
+        "CL_TOR_REF_VALUE",
+        "CL_TOR_CMD_VALUE",
+        "FBK_CUR_MODULE_VALUE",
+        "FBK_CUR_A_VALUE",
+        "FBK_CUR_B_VALUE",
+        "FBK_CUR_C_VALUE",
+        "PROF_MAX_VEL",
+        "PROF_MAX_ACC",
+        "PROF_MAX_DEC",
+        "CL_VEL_REF_MAX",
+        "CL_CUR_REF_MAX",
+        "MOT_RATED_CURRENT",
+        "DRV_PROT_VBUS_VALUE",
+        "DRV_PROT_STO_STATUS",
         PROFILER_LATCHING_MODE_REGISTER,
     ]
+    read_errors = {}
+    registers = {}
+    for register_uid in register_uids:
+        if mc.info.register_exists(register_uid, servo=alias, axis=1):
+            registers[register_uid] = _read_position_order_diagnostic_value(
+                f"registers.{register_uid}",
+                lambda register_uid=register_uid: mc.communication.get_register(
+                    register_uid, servo=alias, axis=1
+                ),
+                read_errors,
+            )
+
+    feedback_readers = {
+        "commutation": lambda: mc.feedbacks.get_commutation_feedback(servo=alias, axis=1),
+        "reference": lambda: mc.feedbacks.get_reference_feedback(servo=alias, axis=1),
+        "velocity": lambda: mc.feedbacks.get_velocity_feedback(servo=alias, axis=1),
+        "position": lambda: mc.feedbacks.get_position_feedback(servo=alias, axis=1),
+        "auxiliary": lambda: mc.feedbacks.get_auxiliar_feedback(servo=alias, axis=1),
+        "position_resolution": lambda: mc.configuration.get_position_feedback_resolution(
+            servo=alias, axis=1
+        ),
+    }
+    feedback = {
+        name: _read_position_order_diagnostic_value(f"feedback.{name}", reader, read_errors)
+        for name, reader in feedback_readers.items()
+    }
+
+    error_readers = {
+        "fault_active": lambda: mc.errors.is_fault_active(servo=alias, axis=1),
+        "warning_active": lambda: mc.errors.is_warning_active(servo=alias, axis=1),
+        "total_errors": lambda: mc.errors.get_number_total_errors(servo=alias, axis=1),
+        "last_error": lambda: mc.errors.get_last_error(servo=alias, axis=1),
+        "last_buffer_error": lambda: mc.errors.get_last_buffer_error(servo=alias, axis=1),
+    }
+    errors = {
+        name: _read_position_order_diagnostic_value(f"errors.{name}", reader, read_errors)
+        for name, reader in error_readers.items()
+    }
     return {
-        register_uid: mc.communication.get_register(register_uid, servo=alias, axis=1)
-        for register_uid in register_uids
-        if mc.info.register_exists(register_uid, servo=alias, axis=1)
+        "registers": registers,
+        "feedback": feedback,
+        "errors": errors,
+        "read_errors": read_errors,
     }
 
 
+def _read_position_order_diagnostic_value(
+    label: str,
+    read_value: Callable[[], Any],
+    read_errors: dict[str, str],
+) -> Any:
+    try:
+        return read_value()
+    except Exception as error:
+        read_errors[label] = f"{type(error).__name__}: {error}"
+        return None
+
+
 def _log_position_order_diagnostic_sample(
-    variant, phase, elapsed, start_position, target_position, registers
+    variant, phase, elapsed, start_position, target_position, diagnostic_state
 ):
     logger.info(
-        "Position-order diagnostic variant=%s phase=%s elapsed=%.3fs "
-        "start=%s target=%s registers=%s",
+        "Position-order diagnostic variant=%s phase=%s elapsed=%.3fs start=%s target=%s state=%s",
         variant,
         phase,
         elapsed,
         start_position,
         target_position,
-        registers,
+        diagnostic_state,
     )
 
 
@@ -100,7 +187,7 @@ def test_profile_position_target_order_diagnostic(mc, alias, target_before_enabl
     start_position = mc.motion.get_actual_position(servo=alias)
     target_position = start_position + position_resolution // 2
     reached = False
-    last_registers = None
+    last_diagnostic_state = None
     start_time = time.monotonic()
 
     try:
@@ -166,22 +253,32 @@ def test_profile_position_target_order_diagnostic(mc, alias, target_before_enabl
 
         deadline = time.monotonic() + POSITION_ORDER_DIAGNOSTIC_TIMEOUT_S
         while time.monotonic() < deadline:
-            last_registers = _read_position_order_diagnostic_registers(mc, alias)
+            last_diagnostic_state = _read_position_order_diagnostic_registers(mc, alias)
             _log_position_order_diagnostic_sample(
                 variant,
                 "poll",
                 time.monotonic() - start_time,
                 start_position,
                 target_position,
-                last_registers,
+                last_diagnostic_state,
             )
-            actual_position = last_registers.get(ACTUAL_POSITION_REGISTER)
+            actual_position = last_diagnostic_state["registers"].get(ACTUAL_POSITION_REGISTER)
             if isinstance(actual_position, int) and abs(actual_position - target_position) <= (
                 POSITION_ORDER_DIAGNOSTIC_ALLOWED_ERROR
             ):
                 reached = True
                 break
             time.sleep(POSITION_ORDER_DIAGNOSTIC_SAMPLE_INTERVAL_S)
+        if not reached:
+            last_diagnostic_state = _read_position_order_diagnostic_registers(mc, alias)
+            _log_position_order_diagnostic_sample(
+                variant,
+                "timeout",
+                time.monotonic() - start_time,
+                start_position,
+                target_position,
+                last_diagnostic_state,
+            )
     finally:
         try:
             mc.motion.motor_disable(servo=alias)
@@ -190,11 +287,15 @@ def test_profile_position_target_order_diagnostic(mc, alias, target_before_enabl
 
     if not reached:
         logger.warning(
-            "Position-order diagnostic variant=%s timed out. Last registers=%s",
+            "Position-order diagnostic variant=%s timed out after %.3fs. "
+            "start=%s target=%s last_state=%s",
             variant,
-            last_registers,
+            time.monotonic() - start_time,
+            start_position,
+            target_position,
+            last_diagnostic_state,
         )
-    assert reached, f"Position-order diagnostic timed out for {variant}: {last_registers}"
+    assert reached, f"Position-order diagnostic timed out for {variant}: {last_diagnostic_state}"
 
 
 @pytest.fixture
