@@ -63,7 +63,10 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/CIT-780",
+)
 def test_target_latch(servo, mc, alias):
     with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
         mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
@@ -331,7 +334,10 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.biss_c_flaky(
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-800",
+)
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -356,8 +362,14 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
-# https://novantamotion.atlassian.net/browse/INGM-805
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-805",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-805",
+)
 def test_set_velocity_blocking(mc: "MotionController", alias: str, velocity_value: float) -> None:
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -457,7 +469,14 @@ def test_ramp_step_callback(ramp_method):
 @pytest.mark.biss_c_flaky(
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-814",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-814",
+)
 def test_get_actual_position(mc: "MotionController", alias: str, position_value: int) -> None:
     position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -498,8 +517,14 @@ def test_get_actual_position(mc: "MotionController", alias: str, position_value:
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
-# https://novantamotion.atlassian.net/browse/INGM-802
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-802",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-802",
+)
 def test_get_actual_velocity(servo, mc, alias, velocity_value):
     with refresh_registers_for_test_rollback(
         servo,
@@ -574,8 +599,14 @@ def test_set_internal_generator_configuration(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-# https://novantamotion.atlassian.net/browse/INGM-808
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-808",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-808",
+)
 def test_internal_generator_saw_tooth_move(
     mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
@@ -605,8 +636,14 @@ def test_internal_generator_saw_tooth_move(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-# https://novantamotion.atlassian.net/browse/INGM-812
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-812",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-812",
+)
 def test_internal_generator_constant_move(
     servo, mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
