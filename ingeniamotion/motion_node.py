@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from functools import cached_property
 
 from ingenialink import Network, Servo
+from ingenialink.utils._utils import REG_VALUE
 
 from ingeniamotion.axis import Axis
 from ingeniamotion.capture import MotionNodeCapture
@@ -36,6 +37,17 @@ class MotionNode:
     def network(self) -> Network:
         """Network associated with the motion node."""
         return self.__net
+
+    def read(self, reg_uid: str) -> REG_VALUE:
+        """Read a register of the motion node itself.
+
+        Args:
+            reg_uid: register UID to read.
+
+        Returns:
+            The register value.
+        """
+        return self.__servo.read(reg_uid, subnode=0)
 
     @property
     def axes(self) -> Iterator["Axis"]:

@@ -87,3 +87,29 @@ def weak_lru(
         return cast("Callable[..., _T]", wrapper)
 
     return decorator
+
+
+@contextlib.contextmanager
+def map_exceptions(mapping: dict[type[Exception], type[Exception]]) -> Generator[None, None, None]:
+    """Context manager that raises a mapped exception instead of the caught one.
+
+    Args:
+        mapping: exception type to raise for each caught exception type.
+
+    Yields:
+        None, while the wrapped code runs.
+
+    Raises:
+        Exception: the mapped exception, when a mapped exception type is raised.
+
+    Example:
+        with map_exceptions({ILRegisterNotFoundError: IMRegisterNotExistError}):
+            servo.read("MON_DIST_STATUS", subnode=0)
+    """
+    try:
+        yield
+    except tuple(mapping) as exc:
+        exception_type = next(
+            mapped for caught, mapped in mapping.items() if isinstance(exc, caught)
+        )
+        raise exception_type(str(exc)) from exc

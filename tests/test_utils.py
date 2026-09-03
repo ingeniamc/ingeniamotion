@@ -3,8 +3,8 @@ import weakref
 
 import pytest
 
-from ingeniamotion._utils import weak_lru
-from ingeniamotion.exceptions import IMErrorQueueNotExistsError
+from ingeniamotion._utils import map_exceptions, weak_lru
+from ingeniamotion.exceptions import IMErrorQueueNotExistsError, IMStatusWordError
 
 
 class ExpensiveCalculator:
@@ -84,3 +84,17 @@ def test_exception_group_lets_non_catched_through():
         with IMErrorQueueNotExistsError.group("Message of the group") as eg:
             with eg.catch(KeyError, ValueError):
                 raise NotImplementedError("Test KeyError")
+
+
+@pytest.mark.virtual
+def test_map_exceptions_raises_the_mapped_exception():
+    with pytest.raises(IMStatusWordError) as error, map_exceptions({KeyError: IMStatusWordError}):
+        raise KeyError("missing")
+
+    assert isinstance(error.value.__cause__, KeyError)
+
+
+@pytest.mark.virtual
+def test_map_exceptions_leaves_unmapped_exceptions():
+    with pytest.raises(ValueError), map_exceptions({KeyError: IMStatusWordError}):
+        raise ValueError("unmapped")
