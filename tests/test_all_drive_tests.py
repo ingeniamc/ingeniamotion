@@ -111,6 +111,12 @@ def assert_returns_to_initial_value(
     )
 
 
+def _feedback_polarity_register(mc: "MotionController", alias: str, sensor: SensorType) -> str:
+    """Return the polarity register identifier for a feedback sensor."""
+    axis = mc.motion_nodes[alias].get_axis(1)
+    return axis.feedbacks.get_sensor(sensor).polarity_reg.identifier
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -146,7 +152,7 @@ def test_digital_halls_test(
         registers_baseline,
         accepted_changed_registers=(
             *DigitalHallTest.ACCEPTED_CHANGED_REGISTERS,
-            DigitalHallTest.FEEDBACK_POLARITY_REGISTER,
+            _feedback_polarity_register(mc, alias, SensorType.HALLS),
         ),
         do_not_restore_registers=do_not_restore_registers,
     )
@@ -178,7 +184,7 @@ def test_incremental_encoder_1_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(DigitalIncremental1Test.FEEDBACK_POLARITY_REGISTER,),
+        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.QEI),),
         do_not_restore_registers=do_not_restore_registers,
     )
 
@@ -211,7 +217,7 @@ def test_incremental_encoder_2_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(DigitalIncremental2Test.FEEDBACK_POLARITY_REGISTER,),
+        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.QEI2),),
         do_not_restore_registers=do_not_restore_registers,
     )
 
@@ -242,7 +248,7 @@ def test_absolute_encoder_1_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(AbsoluteEncoder1Test.FEEDBACK_POLARITY_REGISTER,),
+        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.ABS1),),
         do_not_restore_registers=do_not_restore_registers,
     )
 
@@ -273,7 +279,7 @@ def test_absolute_encoder_2_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(AbsoluteEncoder2Test.FEEDBACK_POLARITY_REGISTER,),
+        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.BISSC2),),
         do_not_restore_registers=do_not_restore_registers,
     )
 
@@ -306,7 +312,7 @@ def test_secondary_ssi_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(SecondarySSITest.FEEDBACK_POLARITY_REGISTER,),
+        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.SSI2),),
         do_not_restore_registers=do_not_restore_registers,
     )
 
