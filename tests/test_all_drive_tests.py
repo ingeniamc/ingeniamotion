@@ -156,8 +156,10 @@ def test_digital_halls_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-783
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-783",
+)
 def test_incremental_encoder_1_test(
     mc,
     alias,
@@ -187,8 +189,10 @@ def test_incremental_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-784
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-784",
+)
 def test_incremental_encoder_2_test(
     mc,
     alias,
@@ -220,8 +224,10 @@ def test_incremental_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-785
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-785",
+)
 def test_absolute_encoder_1_test(
     mc,
     alias,
@@ -251,8 +257,10 @@ def test_absolute_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-786
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-786",
+)
 def test_absolute_encoder_2_test(
     mc,
     alias,
@@ -282,8 +290,10 @@ def test_absolute_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-787
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-787",
+)
 def test_secondary_ssi_test(
     mc,
     alias,
@@ -314,8 +324,10 @@ def test_secondary_ssi_test(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-# https://novantamotion.atlassian.net/browse/INGM-774
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-774",
+)
 def test_commutation(
     servo: Servo,
     alias: str,
