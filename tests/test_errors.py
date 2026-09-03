@@ -316,13 +316,13 @@ class TestErrors:
         connection_wrapper: "ConnectionWrapper",
     ) -> None:
         """Test ServoErrorQueue with no errors present."""
-        power_cycle_and_restore(
+        assert power_cycle_and_restore(
             environment=environment,
             connection_wrapper=connection_wrapper,
             wait_for_drives=False,
             reconnect_drives=True,
             reconnect_timeout=20,
-        )
+        ), "Power cycle and drive reconnection failed"
 
         mc.motion.fault_reset(servo=alias)
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
@@ -361,13 +361,13 @@ class TestErrors:
         connection_wrapper: "ConnectionWrapper",
     ) -> None:
         """Test that ServoErrorQueue only reports new errors after first call."""
-        power_cycle_and_restore(
+        assert power_cycle_and_restore(
             environment=environment,
             connection_wrapper=connection_wrapper,
             wait_for_drives=False,
             reconnect_drives=True,
             reconnect_timeout=20,
-        )
+        ), "Power cycle and drive reconnection failed"
 
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
 
