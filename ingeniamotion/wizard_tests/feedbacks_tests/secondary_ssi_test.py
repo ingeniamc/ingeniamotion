@@ -9,8 +9,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTe
 class SecondarySSITest(FeedbacksTest):
     """Secondary SSI test class."""
 
-    FEEDBACK_POLARITY_REGISTER = "FBK_SSI2_POS_POLARITY"
-
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.SSI2
 
     def __init__(
