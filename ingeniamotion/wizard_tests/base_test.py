@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
 from typing import (
@@ -11,12 +12,12 @@ from typing import (
     Generic,
     Optional,
     TypeVar,
-    Union,
 )
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
-from ingenialink.exceptions import ILError
+from ingenialink.register import Register
+from ingenialink.utils._utils import REG_VALUE
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.metaclass import DEFAULT_SERVO
@@ -41,22 +42,39 @@ class TestConfigurationError(TestError):
     """Test configuration exception."""
 
 
+RegisterChangeProposal = dict[Register, REG_VALUE]
+
+
 @dataclass(eq=False)
-class ReportBase(dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]):
+class ReportBase:
     """Base class for result reports."""
 
     result_severity: SeverityLevel
     """Severity level."""
     result_message: str
     """Message explaining the result."""
-    suggested_registers: dict[str, Union[int, float, str]]
+    suggested_registers: RegisterChangeProposal
     """Register values suggested by the test."""
 
-    def __post_init__(self) -> None:
-        """Populate the legacy dictionary representation."""
-        self["result_severity"] = self.result_severity
-        self["result_message"] = self.result_message
-        self["suggested_registers"] = self.suggested_registers
+    def __getitem__(self, key: str) -> Any:
+        """Read a report field using the legacy dictionary syntax.
+
+        Args:
+            key: Report field name.
+
+        Returns:
+            The value associated with the report field.
+
+        Raises:
+            KeyError: If the field name is not recognized.
+        """
+        if key == "result_severity":
+            return self.result_severity
+        if key == "result_message":
+            return self.result_message
+        if key == "suggested_registers":
+            return self.suggested_registers
+        raise KeyError(key)
 
 
 T = TypeVar("T", bound=ReportBase)
@@ -70,12 +88,21 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     def __init__(self) -> None:
         super().__init__()
-        self.suggested_registers: dict[str, Union[int, float, str]] = {}
+        self.suggested_registers: RegisterChangeProposal = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
         self.report: Optional[T] = None
         self.logger = ingenialogger.get_logger(__name__)
+
+    def suggest_register(self, register: Register, value: REG_VALUE) -> None:
+        """Suggest a value for a drive register.
+
+        Args:
+            register: Drive register.
+            value: Value recommended by the test.
+        """
+        self.suggested_registers[register] = value
 
     @weak_lru()
     def _get_servo(self) -> "Servo":
@@ -140,7 +167,10 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     def teardown(self) -> None:
         """Actions to perform after the test is run."""
 
-    def run(self, registers_baseline: Optional[DriveRegistersValue] = None) -> Optional[T]:
+    def run(
+        self,
+        registers_baseline: Optional[DriveRegistersValue] = None,
+    ) -> Optional[T]:
         """Run the test.
 
         Returns:
@@ -149,6 +179,26 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
         Raises:
             ILError: If the underlying drive communication fails during the test run.
+        """
+        try:
+            with self.run_context(registers_baseline):
+                pass
+        except StopExceptionError:
+            self.logger.warning("Test has been stopped")
+
+        return self.report
+
+    @contextmanager
+    def run_context(
+        self, registers_baseline: Optional[DriveRegistersValue] = None
+    ) -> Iterator[None]:
+        """Run the test setup and keep the drive configured until context exit.
+
+        Args:
+            registers_baseline: Optional pre-built register snapshot used as the
+                restore baseline. Read from hardware when not provided.
+
+
         """
         with (
             context := DriveContextManager(
@@ -164,19 +214,16 @@ class BaseTest(ABC, Stoppable, Generic[T]):
                 self.check_stop()
                 output = self.loop()
                 self.check_stop()
-                self.report = self.generate_report(output)
-                self.check_stop()
-            except ILError as err:
-                raise err
-            except StopExceptionError:
-                self.logger.warning("Test has been stopped")
+                try:
+                    yield
+                    self.report = self.generate_report(output)
+                except StopExceptionError:
+                    self.logger.warning("Test has been stopped")
             finally:
                 try:
                     self.teardown()
                 finally:
                     self._restore_configuration(context)
-
-        return self.report
 
     def _restore_configuration(self, context: DriveContextManager) -> None:
         """Restore configuration that requires an ordered transition."""
