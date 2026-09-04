@@ -101,11 +101,11 @@ def _read_position_order_diagnostic_registers(mc, alias):
             )
 
     feedback_readers = {
-        "commutation": lambda: mc.feedbacks.get_commutation_feedback(servo=alias, axis=1),
-        "reference": lambda: mc.feedbacks.get_reference_feedback(servo=alias, axis=1),
-        "velocity": lambda: mc.feedbacks.get_velocity_feedback(servo=alias, axis=1),
-        "position": lambda: mc.feedbacks.get_position_feedback(servo=alias, axis=1),
-        "auxiliary": lambda: mc.feedbacks.get_auxiliar_feedback(servo=alias, axis=1),
+        "commutation": lambda: mc.configuration.get_commutation_feedback(servo=alias, axis=1),
+        "reference": lambda: mc.configuration.get_reference_feedback(servo=alias, axis=1),
+        "velocity": lambda: mc.configuration.get_velocity_feedback(servo=alias, axis=1),
+        "position": lambda: mc.configuration.get_position_feedback(servo=alias, axis=1),
+        "auxiliary": lambda: mc.configuration.get_auxiliar_feedback(servo=alias, axis=1),
         "position_resolution": lambda: mc.configuration.get_position_feedback_resolution(
             servo=alias, axis=1
         ),
@@ -305,9 +305,51 @@ def initial_position(mc, alias):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     position = position_resolution // 2
+    start_position = mc.motion.get_actual_position(servo=alias)
+    start_time = time.monotonic()
     try:
+        _log_position_order_diagnostic_sample(
+            "initial_position",
+            "before_enable",
+            time.monotonic() - start_time,
+            start_position,
+            position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
         mc.motion.motor_enable(servo=alias)
+        _log_position_order_diagnostic_sample(
+            "initial_position",
+            "after_enable",
+            time.monotonic() - start_time,
+            start_position,
+            position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
         mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+        _log_position_order_diagnostic_sample(
+            "initial_position",
+            "after_move",
+            time.monotonic() - start_time,
+            start_position,
+            position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
+    except Exception as error:
+        _log_position_order_diagnostic_sample(
+            "initial_position",
+            "error",
+            time.monotonic() - start_time,
+            start_position,
+            position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
+        logger.warning(
+            "Initial position setup failed: start=%s target=%s error=%s",
+            start_position,
+            position,
+            error,
+        )
+        raise
     finally:
         mc.motion.motor_disable(servo=alias)
     return position
