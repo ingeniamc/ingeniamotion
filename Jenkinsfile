@@ -125,10 +125,10 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
 properties([
     buildDiscarder(
         logRotator(
-            daysToKeepStr: '90',
-            numToKeepStr: '10',
-            artifactDaysToKeepStr: '30',
-            artifactNumToKeepStr: '5',
+            daysToKeepStr: env.BRANCH_NAME == 'develop' ? '180' : '90',
+            numToKeepStr: env.BRANCH_NAME == 'develop' ? '50' : '10',
+            artifactDaysToKeepStr: env.BRANCH_NAME == 'develop' ? '60' : '30',
+            artifactNumToKeepStr: env.BRANCH_NAME == 'develop' ? '20' : '5',
         )
     ),
     pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),

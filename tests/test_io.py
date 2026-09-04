@@ -44,11 +44,18 @@ def test_set_get_gpi_polarity(mc, alias, gpi_id, polarity):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.virtual
-# Capitan rack setups do not have gpio control
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-C")
-# Setup Canopen everest gpi control is not working well CIT-787
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
+    skip_reason="Capitan rack setups do not have gpio control",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@CAP-XCR-C",
+    skip_reason="Capitan rack setups do not have gpio control",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/CIT-787",
+)
 def test_get_gpi_voltage_level(mc, alias, environment, setup_specifier):
     if not isinstance(
         setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)

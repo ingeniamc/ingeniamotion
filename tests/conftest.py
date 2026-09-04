@@ -39,6 +39,7 @@ RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
 
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
+    "summit_testing_framework.pytest_markers",
     "summit_testing_framework.setup_fixtures",
     "summit_testing_framework.profilers.stoppable_gaps",
 ]
@@ -135,7 +136,10 @@ def apply_configuration_marker_to_items(
         for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:
             item.add_marker(
                 pytest.mark.not_valid_version_for_product(
-                    part_number=skip_product, min="2.6.0", max="2.10.0"
+                    part_number=skip_product,
+                    min="2.6.0",
+                    max="2.10.0",
+                    skip_reason="Flaky test for BISS-C configuration",
                 )
             )
 

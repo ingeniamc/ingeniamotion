@@ -365,9 +365,16 @@ class TestFeedbackScenario0:
         )
 
     @pytest.mark.fsoe_phase2
-    # https://novantamotion.atlassian.net/browse/COMOCOAPP-597
-    @pytest.mark.valid_versions_for_product(part_number="EVS-S-NET-E", max="2.9.1")
-    @pytest.mark.valid_versions_for_product(part_number="DEN-S-NET-E", max="2.9.1")
+    @pytest.mark.valid_versions_for_product(
+        part_number="EVS-S-NET-E",
+        max="2.9.1",
+        skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-597",
+    )
+    @pytest.mark.valid_versions_for_product(
+        part_number="DEN-S-NET-E",
+        max="2.9.1",
+        skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-597",
+    )
     def test_safe_input_mapped_to_ss2_not_allowed(
         self,
         configured_handler: tuple["MotionController", "FSoEMasterHandler"],
