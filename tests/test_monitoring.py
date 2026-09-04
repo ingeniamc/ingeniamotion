@@ -52,11 +52,6 @@ def mon_map_registers(monitoring):
         MonitoringSoCType.TRIGGER_EVENT_EDGE,
     ],
 )
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_get_trigger_type(mc, alias, monitoring, trigger_type):
     trigger_values = mc.info.register_info(
         MONITOR_START_CONDITION_TYPE_REGISTER, servo=alias, axis=0
@@ -195,11 +190,6 @@ def test_set_monitoring_frequency_exception(monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_map_registers_size_exception(monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     monitoring.samples_number = monitoring.max_sample_number
@@ -208,11 +198,6 @@ def test_monitoring_map_registers_size_exception(monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_map_registers_fail(monitoring):
     registers = []
     with pytest.raises(IMMonitoringError):
@@ -220,11 +205,6 @@ def test_monitoring_map_registers_fail(monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_map_registers_wrong_cyclic(monitoring):
     registers = [{"axis": 1, "name": "DRV_STATE_CONTROL"}]
     with pytest.raises(IMMonitoringError):
@@ -531,11 +511,6 @@ def test_stop_reading_data(mc, alias, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -546,11 +521,6 @@ def test_monitoring_max_sample_size(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_map_registers_invalid_subnode(mocker, mc, monitoring):
     registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -559,11 +529,6 @@ def test_monitoring_map_registers_invalid_subnode(mocker, mc, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_map_registers_invalid_register(mocker, mc, monitoring):
     registers = [{"axis": 1, "name": 1}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -572,11 +537,6 @@ def test_monitoring_map_registers_invalid_register(mocker, mc, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_monitoring_map_registers_invalid_number_mapped_registers(mocker, mc, monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -593,11 +553,6 @@ def test_monitoring_map_registers_invalid_number_mapped_registers(mocker, mc, mo
     ],
 )
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_configure_sample_time_exceptions(
     mocker, mc, monitoring, trigger_delay, expected_exception
 ):
@@ -608,11 +563,6 @@ def test_configure_sample_time_exceptions(
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-*",
-    interfaces=[Interface.ECAT, Interface.CAN],
-    skip_reason="Monitoring and disturbance are not supported",
-)
 def test_get_trigger_type_exception(mocker, mc, monitoring):
     mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
     with pytest.raises(TypeError):
