@@ -103,6 +103,25 @@ def test_target_latch_verifies_control_word_edge(mocker):
 
 
 @pytest.mark.virtual
+def test_clear_target_latch_verifies_control_word_edge(mocker):
+    communication = SimpleNamespace(
+        get_register=mocker.Mock(side_effect=[0x020F, 0x000F]),
+        set_register=mocker.Mock(),
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+
+    motion._clear_target_latch(servo="default", axis=1)
+
+    assert communication.get_register.call_args_list == [
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+    ]
+    communication.set_register.assert_called_once_with(
+        Motion.CONTROL_WORD_REGISTER, 0x000F, servo="default", axis=1
+    )
+
+
+@pytest.mark.virtual
 def test_target_latch_raises_when_control_word_bit_does_not_clear(mocker):
     communication = SimpleNamespace(
         get_register=mocker.Mock(side_effect=[0x020F, 0x020F]),

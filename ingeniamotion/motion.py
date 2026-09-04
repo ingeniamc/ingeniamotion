@@ -58,6 +58,14 @@ class Motion:
             IMTimeoutError: If the target latch control bit does not change state in time.
 
         """
+        control_word = self._clear_target_latch(servo=servo, axis=axis)
+        new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
+        self.mc.communication.set_register(
+            self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
+        )
+        self._wait_for_target_latch_bit(bit_set=True, servo=servo, axis=axis)
+
+    def _clear_target_latch(self, servo: str, axis: int) -> int:
         control_word = self.mc.communication.get_register(
             self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
         )
@@ -67,12 +75,7 @@ class Motion:
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
         )
-        control_word = self._wait_for_target_latch_bit(bit_set=False, servo=servo, axis=axis)
-        new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
-        self.mc.communication.set_register(
-            self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
-        )
-        self._wait_for_target_latch_bit(bit_set=True, servo=servo, axis=axis)
+        return self._wait_for_target_latch_bit(bit_set=False, servo=servo, axis=axis)
 
     def _wait_for_target_latch_bit(self, bit_set: bool, servo: str, axis: int) -> int:
         deadline = time.monotonic() + self.TARGET_LATCH_TIMEOUT_S
