@@ -160,6 +160,8 @@ def _log_position_order_diagnostic_sample(
     )
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
     "target_before_enable",
