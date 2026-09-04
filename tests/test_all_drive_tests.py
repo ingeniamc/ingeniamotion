@@ -674,7 +674,27 @@ def test_current_ramp_up(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.ethernet
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason=(
+        "Dynamic phasing can be used only if commutation and reference feedback "
+        "sensor have the same absolute encoder set"
+    ),
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason=(
+        "Dynamic phasing can be used only if commutation and reference feedback "
+        "sensor have the same absolute encoder set"
+    ),
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ETH_SETUP@EVE-XCR-C",
+    skip_reason=(
+        "Dynamic phasing can be used only if commutation and reference feedback "
+        "sensor have the same absolute encoder set"
+    ),
+)
 def test_dynamic_forced_phasing(
     mc,
     alias,
