@@ -637,10 +637,6 @@ def test_internal_generator_saw_tooth_move(
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
 @pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-812",
-)
-@pytest.mark.not_valid_for_specifier(
     specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-812",
 )
