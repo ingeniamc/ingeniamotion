@@ -66,7 +66,6 @@ def test_set_homing_timeout(mc, alias, homing_timeout):
 @pytest.mark.parametrize("homing_offset", [0, 1000])
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.repeat(100)
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_homing_on_current_position(servo, mc, alias, homing_offset):
     with refresh_registers_for_test_rollback(
         servo,
@@ -90,9 +89,14 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-# https://novantamotion.atlassian.net/browse/INGM-775
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-775",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-775",
+)
 def test_homing_on_switch_limit(servo, mc, alias, direction):
     with refresh_registers_for_test_rollback(
         servo,
@@ -143,9 +147,14 @@ def test_homing_on_switch_limit(servo, mc, alias, direction):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
-# https://novantamotion.atlassian.net/browse/INGM-776
-@pytest.mark.not_valid_for_product(part_number="CAP-*")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-776",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-776",
+)
 def test_homing_on_switch_limit_timeout(servo, mc, alias):
     with refresh_registers_for_test_rollback(
         servo,
@@ -272,8 +281,12 @@ def test_homing_status_checker_reports_stale_attained_bit(mocker):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-# https://novantamotion.atlassian.net/browse/COMOCOAPP-493 -> has been fixed in 2.9.0
-@pytest.mark.not_valid_version_for_product(part_number="EVE-*", min="2.7.0", max="2.8.1")
+@pytest.mark.not_valid_version_for_product(
+    part_number="EVE-*",
+    min="2.7.0",
+    max="2.8.1",
+    skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-493 (fixed in 2.9.0)",
+)
 def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
     with refresh_registers_for_test_rollback(
         servo,
@@ -330,9 +343,14 @@ def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-# https://novantamotion.atlassian.net/browse/INGM-777
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-777",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-777",
+)
 def test_homing_on_switch_limit_and_index_pulse(servo, mc, alias, direction):
     with refresh_registers_for_test_rollback(
         servo,
