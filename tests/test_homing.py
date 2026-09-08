@@ -66,6 +66,10 @@ def test_set_homing_timeout(mc, alias, homing_timeout):
 @pytest.mark.parametrize("homing_offset", [0, 1000])
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.repeat(100)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-815",
+)
 def test_homing_on_current_position(servo, mc, alias, homing_offset):
     with refresh_registers_for_test_rollback(
         servo,
