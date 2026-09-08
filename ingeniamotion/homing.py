@@ -82,11 +82,11 @@ class Homing:
         # Save previous mode
         prev_op_mode = self.mc.motion.get_operation_mode(servo, axis)
         self.logger.info(
-            "Current-position homing starting",
+            "Current-position homing starting: homing_offset=%s previous_operation_mode=%s",
+            hom_offset,
+            prev_op_mode,
             axis=axis,
             drive=self.mc.servo_name(servo),
-            homing_offset=hom_offset,
-            previous_operation_mode=prev_op_mode,
         )
 
         self.mc.communication.set_register(
@@ -94,18 +94,18 @@ class Homing:
         )
         self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, hom_offset, servo, axis)
         self.logger.info(
-            "Current-position homing registers configured",
+            "Current-position homing registers configured: homing_mode=%s homing_offset=%s",
+            HomingMode.CURRENT_POSITION,
+            hom_offset,
             axis=axis,
             drive=self.mc.servo_name(servo),
-            homing_mode=HomingMode.CURRENT_POSITION,
-            homing_offset=hom_offset,
         )
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
         self.logger.info(
-            "Current-position homing operation mode entered",
+            "Current-position homing operation mode entered: operation_mode=%s",
+            OperationMode.HOMING,
             axis=axis,
             drive=self.mc.servo_name(servo),
-            operation_mode=OperationMode.HOMING,
         )
 
         # Perform the homing
@@ -123,10 +123,10 @@ class Homing:
         # Restore op mode
         self.mc.motion.set_operation_mode(prev_op_mode, servo, axis)
         self.logger.info(
-            "Current-position homing operation mode restored",
+            "Current-position homing operation mode restored: operation_mode=%s",
+            prev_op_mode,
             axis=axis,
             drive=self.mc.servo_name(servo),
-            operation_mode=prev_op_mode,
         )
 
     def homing_on_switch_limit(
