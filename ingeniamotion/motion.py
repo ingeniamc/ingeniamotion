@@ -58,12 +58,29 @@ class Motion:
             IMTimeoutError: If the target latch control bit does not change state in time.
 
         """
+        self.logger.info(
+            "Target latch starting",
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+        )
         control_word = self._clear_target_latch(servo=servo, axis=axis)
         new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
         )
-        self._wait_for_target_latch_bit(bit_set=True, servo=servo, axis=axis)
+        self.logger.info(
+            "Target latch request written",
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+            control_word_before_latch=new_control_word,
+        )
+        latched_control_word = self._wait_for_target_latch_bit(bit_set=True, servo=servo, axis=axis)
+        self.logger.info(
+            "Target latch completed",
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+            control_word=latched_control_word,
+        )
 
     def _clear_target_latch(self, servo: str, axis: int) -> int:
         control_word = self.mc.communication.get_register(
@@ -75,20 +92,48 @@ class Motion:
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
         )
+        self.logger.info(
+            "Target latch clear request written",
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+            control_word_before_clear=control_word,
+            control_word_after_clear=new_control_word,
+        )
         return self._wait_for_target_latch_bit(bit_set=False, servo=servo, axis=axis)
 
     def _wait_for_target_latch_bit(self, bit_set: bool, servo: str, axis: int) -> int:
         deadline = time.monotonic() + self.TARGET_LATCH_TIMEOUT_S
+        last_control_word = None
+        poll_count = 0
         while time.monotonic() < deadline:
             control_word = self.mc.communication.get_register(
                 self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
             )
             if not isinstance(control_word, int):
                 raise TypeError("Control word register value has to be a integer")
+            last_control_word = control_word
+            poll_count += 1
             if bool(control_word & self.CONTROL_WORD_TARGET_LATCH_BIT) == bit_set:
+                self.logger.info(
+                    "Target latch bit reached requested state",
+                    axis=axis,
+                    drive=self.mc.servo_name(servo),
+                    bit_set=bit_set,
+                    control_word=control_word,
+                    poll_count=poll_count,
+                )
                 return control_word
             time.sleep(self.TARGET_LATCH_POLL_INTERVAL_S)
         state = "set" if bit_set else "clear"
+        self.logger.warning(
+            "Target latch bit did not reach requested state",
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+            bit_set=bit_set,
+            last_control_word=last_control_word,
+            poll_count=poll_count,
+            timeout=self.TARGET_LATCH_TIMEOUT_S,
+        )
         raise IMTimeoutError(
             f"Target latch control bit did not {state} within {self.TARGET_LATCH_TIMEOUT_S} seconds"
         )
@@ -692,14 +737,27 @@ class Motion:
         """
         target_reached = False
         init_time = time.time()
-        self.logger.debug(
+        sample_count = 0
+        self.logger.info(
             "Wait for position %s", position, axis=axis, drive=self.mc.servo_name(servo)
         )
         while not target_reached:
             if interval:
                 time.sleep(interval)
             curr_position = self.get_actual_position(servo=servo, axis=axis)
+            sample_count += 1
             target_reached = abs(position - curr_position) < abs(error)
+            if target_reached:
+                self.logger.info(
+                    "Target position reached",
+                    axis=axis,
+                    drive=self.mc.servo_name(servo),
+                    target_position=position,
+                    actual_position=curr_position,
+                    position_error=position - curr_position,
+                    elapsed=time.time() - init_time,
+                    sample_count=sample_count,
+                )
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
                 self.logger.warning(
@@ -709,6 +767,8 @@ class Motion:
                     f"Allowed error: {error}",
                     axis=axis,
                     drive=self.mc.servo_name(servo),
+                    elapsed=time.time() - init_time,
+                    sample_count=sample_count,
                 )
                 raise IMTimeoutError("Position was not reached in time")
 

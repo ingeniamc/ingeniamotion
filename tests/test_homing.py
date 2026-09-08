@@ -1,3 +1,4 @@
+import logging
 import time
 
 import pytest
@@ -21,6 +22,28 @@ STATUS_WORD_TARGET_REACHED_BIT = 0x400
 HOMING_STATUS_POLL_INTERVAL_S = 0.01
 
 RELATIVE_ERROR_ALLOWED = 3e-2
+
+logger = logging.getLogger(__name__)
+
+
+def _log_current_position_homing_state(mc, alias, phase):
+    try:
+        state = {
+            "operation_mode": mc.motion.get_operation_mode(servo=alias, axis=1),
+            "control_word": mc.communication.get_register("DRV_STATE_CONTROL", servo=alias, axis=1),
+            "status_word": mc.configuration.get_status_word(servo=alias, axis=1),
+            "actual_position": mc.motion.get_actual_position(servo=alias, axis=1),
+            "actual_velocity": mc.motion.get_actual_velocity(servo=alias, axis=1),
+            "homing_mode": mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias, axis=1),
+            "homing_offset": mc.communication.get_register(
+                HOMING_OFFSET_REGISTER, servo=alias, axis=1
+            ),
+            "motor_enabled": mc.configuration.is_motor_enabled(servo=alias, axis=1),
+        }
+    except Exception:
+        logger.exception("Unable to read current-position homing state at %s", phase)
+        return
+    logger.info("Current-position homing state at %s: %s", phase, state)
 
 
 @pytest.fixture
@@ -78,14 +101,26 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
         ],
     ):
         try:
+            _log_current_position_homing_state(mc, alias, "before homing")
             mc.configuration.homing_on_current_position(homing_offset, servo=alias)
+            _log_current_position_homing_state(mc, alias, "after homing")
             feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
             assert pytest.approx(
                 homing_offset,
                 abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
             ) == mc.motion.get_actual_position(servo=alias)
+        except Exception:
+            logger.exception("Current-position homing failed for offset %s", homing_offset)
+            _log_current_position_homing_state(mc, alias, "after homing failure")
+            raise
         finally:
-            mc.motion._clear_target_latch(servo=alias, axis=1)
+            _log_current_position_homing_state(mc, alias, "before latch cleanup")
+            cleared_control_word = mc.motion._clear_target_latch(servo=alias, axis=1)
+            logger.info(
+                "Current-position homing latch cleanup completed: control_word=%s",
+                cleared_control_word,
+            )
+            _log_current_position_homing_state(mc, alias, "after latch cleanup")
 
 
 @pytest.mark.ethernet
