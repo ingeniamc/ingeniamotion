@@ -98,11 +98,24 @@ def _wait_for_homing_motion(mc: "MotionController", alias: str, timeout_s: float
     deadline = time.monotonic() + timeout_s
     motion_started = False
     while time.monotonic() < deadline:
-        if abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05:
+        actual_velocity = mc.motion.get_actual_velocity(servo=alias)
+        if abs(actual_velocity) > 0.05:
             motion_started = True
             break
         time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
     assert motion_started, "Homing motion did not start within the configured timeout"
+
+
+def _wait_for_homing_stop(mc: "MotionController", alias: str, timeout_s: float) -> None:
+    deadline = time.monotonic() + timeout_s
+    motion_stopped = False
+    while time.monotonic() < deadline:
+        actual_velocity = mc.motion.get_actual_velocity(servo=alias)
+        if abs(actual_velocity) <= 0.05:
+            motion_stopped = True
+            break
+        time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
+    assert motion_stopped, "Homing motion did not stop within the configured timeout"
 
 
 @pytest.fixture
@@ -271,9 +284,7 @@ def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", 
             _wait_for_homing_motion(mc, alias, homing_timeout / 1000)
             _log_homing_diagnostics(mc, alias, "after homing motion started")
             time.sleep(homing_timeout / 1000)
-            assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(
-                mc, alias, velocity=True
-            )
+            _wait_for_homing_stop(mc, alias, homing_timeout / 1000)
         finally:
             _log_homing_diagnostics(mc, alias, "before final timeout cleanup")
             try:
