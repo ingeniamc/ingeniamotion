@@ -106,7 +106,8 @@ def test_target_latch_verifies_control_word_edge(mocker):
 
 
 @pytest.mark.virtual
-def test_clear_target_latch_verifies_control_word_edge(mocker):
+def test_clear_target_latch_verifies_control_word_edge(mocker) -> None:
+    """Test that clearing the target latch verifies the control word edge."""
     communication = SimpleNamespace(
         get_register=mocker.Mock(side_effect=[0x020F, 0x000F]),
         set_register=mocker.Mock(),

@@ -89,45 +89,46 @@ class Homing:
             drive=self.mc.servo_name(servo),
         )
 
-        self.mc.communication.set_register(
-            self.HOMING_MODE_REGISTER, HomingMode.CURRENT_POSITION, servo, axis
-        )
-        self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, hom_offset, servo, axis)
-        self.logger.info(
-            "Current-position homing registers configured: homing_mode=%s homing_offset=%s",
-            HomingMode.CURRENT_POSITION,
-            hom_offset,
-            axis=axis,
-            drive=self.mc.servo_name(servo),
-        )
-        self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
-        self.logger.info(
-            "Current-position homing operation mode entered: operation_mode=%s",
-            OperationMode.HOMING,
-            axis=axis,
-            drive=self.mc.servo_name(servo),
-        )
+        try:
+            self.mc.communication.set_register(
+                self.HOMING_MODE_REGISTER, HomingMode.CURRENT_POSITION, servo, axis
+            )
+            self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, hom_offset, servo, axis)
+            self.logger.info(
+                "Current-position homing registers configured: homing_mode=%s homing_offset=%s",
+                HomingMode.CURRENT_POSITION,
+                hom_offset,
+                axis=axis,
+                drive=self.mc.servo_name(servo),
+            )
+            self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
+            self.logger.info(
+                "Current-position homing operation mode entered: operation_mode=%s",
+                OperationMode.HOMING,
+                axis=axis,
+                drive=self.mc.servo_name(servo),
+            )
 
-        # Perform the homing
-        self.logger.info(
-            "Current-position homing target latch starting",
-            axis=axis,
-            drive=self.mc.servo_name(servo),
-        )
-        self.mc.motion.target_latch(servo, axis)
-        self.logger.info(
-            "Current-position homing target latch completed",
-            axis=axis,
-            drive=self.mc.servo_name(servo),
-        )
-        # Restore op mode
-        self.mc.motion.set_operation_mode(prev_op_mode, servo, axis)
-        self.logger.info(
-            "Current-position homing operation mode restored: operation_mode=%s",
-            prev_op_mode,
-            axis=axis,
-            drive=self.mc.servo_name(servo),
-        )
+            # Perform the homing
+            self.logger.info(
+                "Current-position homing target latch starting",
+                axis=axis,
+                drive=self.mc.servo_name(servo),
+            )
+            self.mc.motion.target_latch(servo, axis)
+            self.logger.info(
+                "Current-position homing target latch completed",
+                axis=axis,
+                drive=self.mc.servo_name(servo),
+            )
+        finally:
+            self.mc.motion.set_operation_mode(prev_op_mode, servo, axis)
+            self.logger.info(
+                "Current-position homing operation mode restored: operation_mode=%s",
+                prev_op_mode,
+                axis=axis,
+                drive=self.mc.servo_name(servo),
+            )
 
     def homing_on_switch_limit(
         self,

@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional
 import pytest
 
 from ingeniamotion.enums import HomingMode, OperationMode, SensorType
+from ingeniamotion.homing import Homing
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
 HOMING_MODE_REGISTER = "HOM_MODE"
@@ -451,6 +452,22 @@ def test_homing_status_checker_reports_stale_attained_bit(mocker):
     assert "Homing attained bit was already set and never cleared" in diagnostic
     assert "Status sequence:" in diagnostic
     assert "0x5237" in diagnostic
+
+
+@pytest.mark.virtual
+def test_current_position_homing_restores_operation_mode_on_failure(mocker) -> None:
+    """Test that the operation mode is restored after a homing failure on the current position."""
+    mc = mocker.Mock()
+    mc.motion.get_operation_mode.return_value = OperationMode.PROFILE_POSITION
+    mc.motion.target_latch.side_effect = RuntimeError("target latch failed")
+    mc.servo_name.return_value = "default"
+    homing = Homing(mc)
+
+    with pytest.raises(RuntimeError, match="target latch failed"):
+        homing.homing_on_current_position(100, servo="default", axis=1)
+
+    assert mc.motion.set_operation_mode.call_count == 2
+    mc.motion.set_operation_mode.assert_called_with(OperationMode.PROFILE_POSITION, "default", 1)
 
 
 @pytest.mark.soem
