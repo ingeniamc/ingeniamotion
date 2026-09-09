@@ -18,6 +18,11 @@ class ExpensiveCalculator:
         return x * self.factor
 
 
+class NoArgumentError(Exception):
+    def __init__(self) -> None:
+        super().__init__()
+
+
 @pytest.mark.virtual
 def test_weak_lru_cache():
     calc = ExpensiveCalculator(10)
@@ -98,3 +103,14 @@ def test_map_exceptions_raises_the_mapped_exception():
 def test_map_exceptions_leaves_unmapped_exceptions():
     with pytest.raises(ValueError), map_exceptions({KeyError: IMStatusWordError}):
         raise ValueError("unmapped")
+
+
+@pytest.mark.virtual
+def test_map_exceptions_supports_no_argument_exception_factories():
+    """Mapped exceptions should not receive arguments from the original exception.
+
+    Raises:
+        KeyError: Raised inside the mapping context for the regression check.
+    """
+    with pytest.raises(NoArgumentError), map_exceptions({KeyError: NoArgumentError}):
+        raise KeyError("missing")
