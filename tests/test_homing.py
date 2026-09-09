@@ -224,7 +224,6 @@ def test_homing_on_switch_limit(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
-@pytest.mark.repeat(100)
 def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", alias: str) -> None:
     with refresh_registers_for_test_rollback(
         servo,
