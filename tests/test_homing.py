@@ -107,14 +107,7 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-775",
-)
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-775",
-)
+@pytest.mark.repeat(100)
 def test_homing_on_switch_limit(servo, mc, alias, direction):
     with refresh_registers_for_test_rollback(
         servo,
