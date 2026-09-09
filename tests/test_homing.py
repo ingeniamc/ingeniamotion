@@ -1,7 +1,6 @@
-import logging
 import sys
 import time
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 import pytest
 
@@ -30,55 +29,18 @@ STATUS_WORD_TARGET_REACHED_BIT = 0x400
 HOMING_STATUS_POLL_INTERVAL_S = 0.01
 
 RELATIVE_ERROR_ALLOWED = 3e-2
-CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
-UNDER_TEMPERATURE_REGISTER = "DRV_PROT_USER_UNDER_TEMP"
-
-logger = logging.getLogger(__name__)
-
-
-def _read_homing_diagnostic(reader: Callable[[], object]) -> object:
-    try:
-        return reader()
-    except Exception as error:
-        return f"<read failed: {error!r}>"
-
-
-def _log_homing_diagnostics(mc: "MotionController", alias: str, point: str) -> None:
-    diagnostic_readers: dict[str, Callable[[], object]] = {
-        "status_word": lambda: mc.configuration.get_status_word(servo=alias),
-        "control_word": lambda: mc.communication.get_register(CONTROL_WORD_REGISTER, servo=alias),
-        "operation_mode": lambda: mc.motion.get_operation_mode(servo=alias),
-        "motor_enabled": lambda: mc.configuration.is_motor_enabled(servo=alias),
-        "actual_velocity": lambda: mc.motion.get_actual_velocity(servo=alias),
-        "error_count": lambda: mc.errors.get_number_total_errors(servo=alias),
-        "last_error": lambda: mc.errors.get_last_buffer_error(servo=alias),
-        "under_temperature": lambda: mc.communication.get_register(
-            UNDER_TEMPERATURE_REGISTER, servo=alias
-        ),
-    }
-    diagnostics: dict[str, object] = {}
-    for name, reader in diagnostic_readers.items():
-        diagnostics[name] = _read_homing_diagnostic(reader)
-
-    logger.info(
-        "Homing diagnostics at %s: servo=%s status_word=%s control_word=%s "
-        "operation_mode=%s motor_enabled=%s actual_velocity=%s error_count=%s "
-        "last_error=%s under_temperature=%s",
-        point,
-        alias,
-        diagnostics["status_word"],
-        diagnostics["control_word"],
-        diagnostics["operation_mode"],
-        diagnostics["motor_enabled"],
-        diagnostics["actual_velocity"],
-        diagnostics["error_count"],
-        diagnostics["last_error"],
-        diagnostics["under_temperature"],
-    )
 
 
 def _cleanup_homing_motion(mc: "MotionController", alias: str) -> None:
-    """Cleanup homing motion by disabling the motor and clearing the target latch."""
+    """Cleanup homing motion by disabling the motor and clearing the target latch."
+
+    Args:
+        mc: The motion controller instance.
+        alias: The alias of the servo.
+
+    Raises:
+        Exception: If an error occurs during cleanup.
+    """
     original_exception = sys.exc_info()[1]
     cleanup_error: Optional[Exception] = None
     try:
@@ -95,6 +57,16 @@ def _cleanup_homing_motion(mc: "MotionController", alias: str) -> None:
 
 
 def _wait_for_homing_motion(mc: "MotionController", alias: str, timeout_s: float) -> None:
+    """Wait for the homing motion to start within the specified timeout.
+
+    Args:
+        mc: The motion controller instance.
+        alias: The alias of the servo.
+        timeout_s: The timeout in seconds to wait for the homing motion to start.
+
+    Raises:
+        AssertionError: If the homing motion does not start within the specified timeout.
+    """
     deadline = time.monotonic() + timeout_s
     motion_started = False
     while time.monotonic() < deadline:
@@ -107,6 +79,16 @@ def _wait_for_homing_motion(mc: "MotionController", alias: str, timeout_s: float
 
 
 def _wait_for_homing_stop(mc: "MotionController", alias: str, timeout_s: float) -> None:
+    """Wait for the homing motion to stop within the specified timeout.
+
+    Args:
+        mc: The motion controller instance.
+        alias: The alias of the servo.
+        timeout_s: The timeout in seconds to wait for the homing motion to stop.
+
+    Raises:
+        AssertionError: If the homing motion does not stop within the specified timeout.
+    """
     deadline = time.monotonic() + timeout_s
     motion_stopped = False
     while time.monotonic() < deadline:
@@ -257,7 +239,6 @@ def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", 
         switch = 2
         direction = 1
         try:
-            _log_homing_diagnostics(mc, alias, "before homing configuration")
             mc.configuration.homing_on_switch_limit(
                 homing_offset,
                 direction,
@@ -272,25 +253,13 @@ def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", 
             assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(
                 mc, alias, velocity=True
             )
-            _log_homing_diagnostics(mc, alias, "before motor_enable")
-            try:
-                mc.motion.motor_enable(servo=alias)
-            finally:
-                _log_homing_diagnostics(mc, alias, "after motor_enable")
-            try:
-                mc.motion.target_latch(servo=alias)
-            finally:
-                _log_homing_diagnostics(mc, alias, "after target_latch")
+            mc.motion.motor_enable(servo=alias)
+            mc.motion.target_latch(servo=alias)
             _wait_for_homing_motion(mc, alias, homing_timeout / 1000)
-            _log_homing_diagnostics(mc, alias, "after homing motion started")
             time.sleep(homing_timeout / 1000)
             _wait_for_homing_stop(mc, alias, homing_timeout / 1000)
         finally:
-            _log_homing_diagnostics(mc, alias, "before final timeout cleanup")
-            try:
-                _cleanup_homing_motion(mc, alias)
-            finally:
-                _log_homing_diagnostics(mc, alias, "after final timeout cleanup")
+            _cleanup_homing_motion(mc, alias)
 
 
 def __check_index_pulse_is_allowed(feedback_list: list["SensorType"]) -> tuple[bool, int]:
