@@ -484,12 +484,12 @@ def test_check_monitoring_version_v1(mocker, mc, alias, motion_node):
 
 @pytest.mark.virtual
 def test_check_monitoring_version_not_available(mocker, mc, alias, motion_node):
+    patch_monitoring_version(mocker, motion_node, None)
     detection_registers = [
         MotionNodeCapture._MONITORING_VERSION_REGISTER,
         MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
         MotionNodeCapture._MONITORING_STATUS_REGISTER,
     ]
-    patch_monitoring_version(mocker, motion_node, None)
     servo = mc.servos[alias]
     original_read = servo.read
 
