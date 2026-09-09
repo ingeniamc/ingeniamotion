@@ -1,6 +1,7 @@
 import logging
+import sys
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import pytest
 
@@ -160,15 +161,36 @@ def initial_position(mc, alias):
         _log_drive_state(mc, alias, "initial_position move failure")
         raise
     finally:
+        original_exception = sys.exc_info()[1]
+        cleanup_error: Optional[Exception] = None
         _log_drive_state(mc, alias, "initial_position before motor disable")
         logger.info("Initial-position motor disable starting: target_position=%s", position)
         try:
             mc.motion.motor_disable(servo=alias)
-        except Exception:
+        except Exception as error:
+            cleanup_error = error
             logger.exception("Initial-position motor disable failed: target_position=%s", position)
             _log_drive_state(mc, alias, "initial_position motor disable failure")
-            raise
-        _log_drive_state(mc, alias, "initial_position after motor disable")
+        else:
+            _log_drive_state(mc, alias, "initial_position after motor disable")
+        logger.info("Initial-position target latch cleanup starting: target_position=%s", position)
+        try:
+            cleared_control_word = mc.motion._clear_target_latch(servo=alias, axis=1)
+            logger.info(
+                "Initial-position target latch cleanup completed: control_word=%s",
+                cleared_control_word,
+            )
+        except Exception as error:
+            if cleanup_error is None:
+                cleanup_error = error
+            logger.exception(
+                "Initial-position target latch cleanup failed: target_position=%s", position
+            )
+            _log_drive_state(mc, alias, "initial_position target latch cleanup failure")
+        else:
+            _log_drive_state(mc, alias, "initial_position after target latch cleanup")
+        if original_exception is None and cleanup_error is not None:
+            raise cleanup_error
     logger.info("Initial-position fixture completed: target_position=%s", position)
     _log_drive_state(mc, alias, "initial_position fixture complete")
     return position
