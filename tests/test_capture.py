@@ -407,14 +407,14 @@ def test_motion_node_capture_version_is_cached(mocker, motion_node):
     assert first_version == MonitoringVersion.MONITORING_V3
     assert second_version == MonitoringVersion.MONITORING_V3
     detection_registers = {
-        MotionNodeCapture.MONITORING_VERSION_REGISTER,
-        MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
-        MotionNodeCapture.MONITORING_STATUS_REGISTER,
+        MotionNodeCapture._MONITORING_VERSION_REGISTER,
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        MotionNodeCapture._MONITORING_STATUS_REGISTER,
     }
     detection_reads = [
         call.args[0] for call in read.call_args_list if call.args[0] in detection_registers
     ]
-    assert detection_reads == [MotionNodeCapture.MONITORING_VERSION_REGISTER]
+    assert detection_reads == [MotionNodeCapture._MONITORING_VERSION_REGISTER]
     detection_calls = [call for call in read.call_args_list if call.args[0] in detection_registers]
     assert all(call.kwargs == {"subnode": 0} for call in detection_calls)
 
@@ -424,9 +424,9 @@ def test_motion_node_capture_unsupported_version_is_cached(mocker, motion_node):
     """Test that unsupported monitoring detection is not repeated."""
     patch_monitoring_version(mocker, motion_node, None)
     detection_registers = {
-        MotionNodeCapture.MONITORING_VERSION_REGISTER,
-        MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
-        MotionNodeCapture.MONITORING_STATUS_REGISTER,
+        MotionNodeCapture._MONITORING_VERSION_REGISTER,
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        MotionNodeCapture._MONITORING_STATUS_REGISTER,
     }
     original_read = motion_node.servo.read
 
@@ -445,9 +445,9 @@ def test_motion_node_capture_unsupported_version_is_cached(mocker, motion_node):
     assert first_error.value is not second_error.value
     detection_reads = [call.args[0] for call in read_mock.call_args_list]
     assert detection_reads == [
-        MotionNodeCapture.MONITORING_VERSION_REGISTER,
-        MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
-        MotionNodeCapture.MONITORING_STATUS_REGISTER,
+        MotionNodeCapture._MONITORING_VERSION_REGISTER,
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        MotionNodeCapture._MONITORING_STATUS_REGISTER,
     ]
     assert all(call.kwargs == {"subnode": 0} for call in read_mock.call_args_list)
 
@@ -455,7 +455,7 @@ def test_motion_node_capture_unsupported_version_is_cached(mocker, motion_node):
 @pytest.mark.virtual
 def test_motion_node_capture_raises_ingenialink_register_error(mocker, motion_node):
     """Test that the motion node capture raises the ingenialink register error."""
-    mocker.patch.object(MotionNodeCapture, "MONITORING_STATUS_REGISTER", "NON_EXISTING_UID")
+    mocker.patch.object(MotionNodeCapture, "_MONITORING_STATUS_REGISTER", "NON_EXISTING_UID")
     with pytest.raises(ILRegisterNotFoundError):
         motion_node.capture.get_monitoring_status()
 
@@ -463,7 +463,7 @@ def test_motion_node_capture_raises_ingenialink_register_error(mocker, motion_no
 @pytest.mark.virtual
 def test_capture_raises_ingeniamotion_register_error(mocker, mc, alias):
     """Test that the facade keeps raising the ingeniamotion register error."""
-    mocker.patch.object(MotionNodeCapture, "MONITORING_STATUS_REGISTER", "NON_EXISTING_UID")
+    mocker.patch.object(MotionNodeCapture, "_MONITORING_STATUS_REGISTER", "NON_EXISTING_UID")
     with pytest.raises(IMRegisterNotExistError):
         mc.capture.get_monitoring_status(servo=alias)
 
@@ -485,9 +485,9 @@ def test_check_monitoring_version_v1(mocker, mc, alias, motion_node):
 @pytest.mark.virtual
 def test_check_monitoring_version_not_available(mocker, mc, alias, motion_node):
     detection_registers = [
-        MotionNodeCapture.MONITORING_VERSION_REGISTER,
-        MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
-        MotionNodeCapture.MONITORING_STATUS_REGISTER,
+        MotionNodeCapture._MONITORING_VERSION_REGISTER,
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        MotionNodeCapture._MONITORING_STATUS_REGISTER,
     ]
     patch_monitoring_version(mocker, motion_node, None)
     servo = mc.servos[alias]
@@ -517,7 +517,7 @@ def test_motion_node_capture_version_is_not_cached_after_communication_error(moc
 
     def read(register, *args, **kwargs):
         nonlocal failed
-        if register == MotionNodeCapture.MONITORING_VERSION_REGISTER and not failed:
+        if register == MotionNodeCapture._MONITORING_VERSION_REGISTER and not failed:
             failed = True
             raise ILError
         return original_read(register, *args, **kwargs)
@@ -536,9 +536,9 @@ def test_capture_explicit_version_bypasses_detection(mocker, mc, alias):
     mc.capture.disable_disturbance(servo=alias, version=MonitoringVersion.MONITORING_V3)
 
     detection_registers = {
-        MotionNodeCapture.MONITORING_VERSION_REGISTER,
-        MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
-        MotionNodeCapture.MONITORING_STATUS_REGISTER,
+        MotionNodeCapture._MONITORING_VERSION_REGISTER,
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        MotionNodeCapture._MONITORING_STATUS_REGISTER,
     }
     detection_reads = [
         call.args[0] for call in read.call_args_list if call.args[0] in detection_registers

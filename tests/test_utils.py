@@ -18,11 +18,6 @@ class ExpensiveCalculator:
         return x * self.factor
 
 
-class NoArgumentError(Exception):
-    def __init__(self) -> None:
-        super().__init__()
-
-
 @pytest.mark.virtual
 def test_weak_lru_cache():
     calc = ExpensiveCalculator(10)
@@ -91,26 +86,34 @@ def test_exception_group_lets_non_catched_through():
                 raise NotImplementedError("Test KeyError")
 
 
-@pytest.mark.virtual
-def test_map_exceptions_raises_the_mapped_exception():
-    with pytest.raises(IMStatusWordError) as error, map_exceptions({KeyError: IMStatusWordError}):
-        raise KeyError("missing")
+class TestMapExceptions:
+    """Tests for exception type mapping."""
 
-    assert isinstance(error.value.__cause__, KeyError)
+    class NoArgumentError(Exception):
+        def __init__(self) -> None:
+            super().__init__()
 
+    @pytest.mark.virtual
+    def test_raises_the_mapped_exception(self):
+        with (
+            pytest.raises(IMStatusWordError) as error,
+            map_exceptions({KeyError: IMStatusWordError}),
+        ):
+            raise KeyError("missing")
 
-@pytest.mark.virtual
-def test_map_exceptions_leaves_unmapped_exceptions():
-    with pytest.raises(ValueError), map_exceptions({KeyError: IMStatusWordError}):
-        raise ValueError("unmapped")
+        assert isinstance(error.value.__cause__, KeyError)
 
+    @pytest.mark.virtual
+    def test_leaves_unmapped_exceptions(self):
+        with pytest.raises(ValueError), map_exceptions({KeyError: IMStatusWordError}):
+            raise ValueError("unmapped")
 
-@pytest.mark.virtual
-def test_map_exceptions_supports_no_argument_exception_factories():
-    """Mapped exceptions should not receive arguments from the original exception.
+    @pytest.mark.virtual
+    def test_supports_no_argument_exception_factories(self):
+        """Mapped exceptions should not receive arguments from the original exception.
 
-    Raises:
-        KeyError: Raised inside the mapping context for the regression check.
-    """
-    with pytest.raises(NoArgumentError), map_exceptions({KeyError: NoArgumentError}):
-        raise KeyError("missing")
+        Raises:
+            KeyError: Raised inside the mapping context for the regression check.
+        """
+        with pytest.raises(self.NoArgumentError), map_exceptions({KeyError: self.NoArgumentError}):
+            raise KeyError("missing")

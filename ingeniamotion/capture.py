@@ -39,13 +39,13 @@ _REGISTER_ERRORS: Final[dict[type[Exception], type[Exception]]] = {
 class MotionNodeCapture:
     """Capture operations bound to a motion node."""
 
-    DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
-    MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
-    MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
-    MONITORING_VERSION_REGISTER = "MON_DIST_VERSION"
+    _DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
+    _MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
+    _MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+    _MONITORING_VERSION_REGISTER = "MON_DIST_VERSION"
 
-    MONITORING_STATUS_ENABLED_BIT = 0x1
-    DISTURBANCE_STATUS_ENABLED_BIT = 0x1
+    _MONITORING_STATUS_ENABLED_BIT = 0x1
+    _DISTURBANCE_STATUS_ENABLED_BIT = 0x1
 
     __UNSUPPORTED_MESSAGE = (
         "The monitoring and disturbance features are not available for this drive"
@@ -99,7 +99,8 @@ class MotionNodeCapture:
             TypeError: If the read value has a wrong type.
         """
         return self.__read_status(
-            self.MONITORING_STATUS_REGISTER, "Monitoring status value has to be an integer"
+            self._MONITORING_STATUS_REGISTER,
+            "Monitoring status value has to be an integer",
         )
 
     def is_monitoring_enabled(self) -> bool:
@@ -111,7 +112,7 @@ class MotionNodeCapture:
         Raises:
             ILRegisterNotFoundError: If the register doesn't exist.
         """
-        return (self.get_monitoring_status() & self.MONITORING_STATUS_ENABLED_BIT) == 1
+        return (self.get_monitoring_status() & self._MONITORING_STATUS_ENABLED_BIT) == 1
 
     def get_disturbance_status(self) -> int:
         """Return the disturbance status of the motion node.
@@ -125,9 +126,9 @@ class MotionNodeCapture:
             TypeError: If the read value has a wrong type.
         """
         register = (
-            self.MONITORING_STATUS_REGISTER
+            self._MONITORING_STATUS_REGISTER
             if self.version < MonitoringVersion.MONITORING_V3
-            else self.DISTURBANCE_STATUS_REGISTER
+            else self._DISTURBANCE_STATUS_REGISTER
         )
         return self.__read_status(register, "Disturbance status value has to be an integer")
 
@@ -141,7 +142,7 @@ class MotionNodeCapture:
             ILRegisterNotFoundError: If the register doesn't exist.
             NotImplementedError: If the drive does not support monitoring and disturbance.
         """
-        return (self.get_disturbance_status() & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
+        return (self.get_disturbance_status() & self._DISTURBANCE_STATUS_ENABLED_BIT) == 1
 
     def enable_monitoring(self) -> None:
         """Enable monitoring for the motion node.
@@ -213,9 +214,9 @@ class MotionNodeCapture:
         """
         communication_failed = False
         candidates = (
-            (self.MONITORING_VERSION_REGISTER, MonitoringVersion.MONITORING_V3),
-            (self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, MonitoringVersion.MONITORING_V2),
-            (self.MONITORING_STATUS_REGISTER, MonitoringVersion.MONITORING_V1),
+            (self._MONITORING_VERSION_REGISTER, MonitoringVersion.MONITORING_V3),
+            (self._MONITORING_CURRENT_NUMBER_BYTES_REGISTER, MonitoringVersion.MONITORING_V2),
+            (self._MONITORING_STATUS_REGISTER, MonitoringVersion.MONITORING_V1),
         )
         for register, version in candidates:
             try:
@@ -251,21 +252,21 @@ class MotionNodeCapture:
 class Capture:
     """Capture."""
 
-    DISTURBANCE_STATUS_REGISTER = MotionNodeCapture.DISTURBANCE_STATUS_REGISTER
+    DISTURBANCE_STATUS_REGISTER = MotionNodeCapture._DISTURBANCE_STATUS_REGISTER
     DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER = "DIST_MAX_SIZE"
-    MONITORING_STATUS_REGISTER = MotionNodeCapture.MONITORING_STATUS_REGISTER
+    MONITORING_STATUS_REGISTER = MotionNodeCapture._MONITORING_STATUS_REGISTER
     MONITORING_CURRENT_NUMBER_BYTES_REGISTER = (
-        MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER
     )
     MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
     MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
 
     MINIMUM_BUFFER_SIZE = 8192
 
-    MONITORING_VERSION_REGISTER = MotionNodeCapture.MONITORING_VERSION_REGISTER
+    MONITORING_VERSION_REGISTER = MotionNodeCapture._MONITORING_VERSION_REGISTER
 
-    MONITORING_STATUS_ENABLED_BIT = MotionNodeCapture.MONITORING_STATUS_ENABLED_BIT
-    DISTURBANCE_STATUS_ENABLED_BIT = MotionNodeCapture.DISTURBANCE_STATUS_ENABLED_BIT
+    MONITORING_STATUS_ENABLED_BIT = MotionNodeCapture._MONITORING_STATUS_ENABLED_BIT
+    DISTURBANCE_STATUS_ENABLED_BIT = MotionNodeCapture._DISTURBANCE_STATUS_ENABLED_BIT
 
     MONITORING_STATUS_PROCESS_STAGE_BITS: Final[dict[MonitoringVersion, int]] = {
         MonitoringVersion.MONITORING_V1: 0x6,

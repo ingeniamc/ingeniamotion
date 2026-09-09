@@ -91,7 +91,7 @@ def weak_lru(
 
 @contextlib.contextmanager
 def map_exceptions(
-    mapping: Mapping[type[Exception], Callable[[], Exception]]
+    mapping: Mapping[type[Exception], Callable[[], Exception]],
 ) -> Generator[None, None, None]:
     """Context manager that raises a mapped exception instead of the caught one.
 
