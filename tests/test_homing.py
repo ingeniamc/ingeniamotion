@@ -157,14 +157,7 @@ def test_homing_on_switch_limit(servo, mc, alias, direction):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-776",
-)
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.CAN_SETUP",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-776",
-)
+@pytest.mark.repeat(100)
 def test_homing_on_switch_limit_timeout(servo, mc, alias):
     with refresh_registers_for_test_rollback(
         servo,
