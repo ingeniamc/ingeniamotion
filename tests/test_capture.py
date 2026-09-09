@@ -39,9 +39,9 @@ def patch_monitoring_version(
     """Reset capture state and make higher monitoring versions unavailable."""
     reset_monitoring_cache(motion_node)
     detection_registers = (
-        "MONITORING_VERSION_REGISTER",
-        "MONITORING_CURRENT_NUMBER_BYTES_REGISTER",
-        "MONITORING_STATUS_REGISTER",
+        "_MONITORING_VERSION_REGISTER",
+        "_MONITORING_CURRENT_NUMBER_BYTES_REGISTER",
+        "_MONITORING_STATUS_REGISTER",
     )
     available_register_index = {
         MonitoringVersion.MONITORING_V3: 0,
