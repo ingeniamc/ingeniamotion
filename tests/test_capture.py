@@ -1,4 +1,5 @@
 import time
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 import pytest
@@ -18,6 +19,38 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMStatusWordError,
 )
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from ingeniamotion.motion_node import MotionNode
+
+
+def reset_monitoring_cache(motion_node: "MotionNode") -> None:
+    """Remove the cached capture object from a motion node."""
+    motion_node.__dict__.pop("capture", None)
+
+
+def patch_monitoring_version(
+    mocker: "MockerFixture",
+    motion_node: "MotionNode",
+    version: Optional[MonitoringVersion],
+) -> None:
+    """Reset capture state and make higher monitoring versions unavailable."""
+    reset_monitoring_cache(motion_node)
+    detection_registers = (
+        "MONITORING_VERSION_REGISTER",
+        "MONITORING_CURRENT_NUMBER_BYTES_REGISTER",
+        "MONITORING_STATUS_REGISTER",
+    )
+    available_register_index = {
+        MonitoringVersion.MONITORING_V3: 0,
+        MonitoringVersion.MONITORING_V2: 1,
+        MonitoringVersion.MONITORING_V1: 2,
+        None: 3,
+    }
+    for register in detection_registers[: available_register_index[version]]:
+        mocker.patch.object(MotionNodeCapture, register, "NON_EXISTING_UID")
 
 
 def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
@@ -365,6 +398,7 @@ def test_check_monitoring_version_v3(mc, alias):
 @pytest.mark.virtual
 def test_motion_node_capture_version_is_cached(mocker, motion_node):
     """Test that version detection reads the registers only once."""
+    reset_monitoring_cache(motion_node)
     read = mocker.spy(motion_node.servo, "read")
 
     first_version = motion_node.capture.version
@@ -388,6 +422,7 @@ def test_motion_node_capture_version_is_cached(mocker, motion_node):
 @pytest.mark.virtual
 def test_motion_node_capture_unsupported_version_is_cached(mocker, motion_node):
     """Test that unsupported monitoring detection is not repeated."""
+    patch_monitoring_version(mocker, motion_node, None)
     detection_registers = {
         MotionNodeCapture.MONITORING_VERSION_REGISTER,
         MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
@@ -434,29 +469,27 @@ def test_capture_raises_ingeniamotion_register_error(mocker, mc, alias):
 
 
 @pytest.mark.virtual
-def test_check_monitoring_version_v2(mocker, mc, alias):
-    mocker.patch.object(MotionNodeCapture, "MONITORING_VERSION_REGISTER", "NON_EXISTING_UID")
+def test_check_monitoring_version_v2(mocker, mc, alias, motion_node):
+    patch_monitoring_version(mocker, motion_node, MonitoringVersion.MONITORING_V2)
     version = mc.capture._check_version(servo=alias)
     assert version == MonitoringVersion.MONITORING_V2
 
 
 @pytest.mark.virtual
-def test_check_monitoring_version_v1(mocker, mc, alias):
-    mocker.patch.object(MotionNodeCapture, "MONITORING_VERSION_REGISTER", "NON_EXISTING_UID")
-    mocker.patch.object(
-        MotionNodeCapture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", "NON_EXISTING_UID"
-    )
+def test_check_monitoring_version_v1(mocker, mc, alias, motion_node):
+    patch_monitoring_version(mocker, motion_node, MonitoringVersion.MONITORING_V1)
     version = mc.capture._check_version(servo=alias)
     assert version == MonitoringVersion.MONITORING_V1
 
 
 @pytest.mark.virtual
-def test_check_monitoring_version_not_available(mocker, mc, alias):
+def test_check_monitoring_version_not_available(mocker, mc, alias, motion_node):
     detection_registers = [
         MotionNodeCapture.MONITORING_VERSION_REGISTER,
         MotionNodeCapture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
         MotionNodeCapture.MONITORING_STATUS_REGISTER,
     ]
+    patch_monitoring_version(mocker, motion_node, None)
     servo = mc.servos[alias]
     original_read = servo.read
 
@@ -478,6 +511,7 @@ def test_check_monitoring_version_not_available(mocker, mc, alias):
 @pytest.mark.virtual
 def test_motion_node_capture_version_is_not_cached_after_communication_error(mocker, motion_node):
     """Test that a version detected after a communication error is detected again."""
+    reset_monitoring_cache(motion_node)
     original_read = motion_node.servo.read
     failed = False
 
