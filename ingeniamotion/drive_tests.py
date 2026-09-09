@@ -201,7 +201,7 @@ class DriveTests:
         output = self.__get_feedback_test(feedback, servo, axis).run()
         if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
             for key, value in output.suggested_registers.items():
-                self.mc.communication.set_register(key, value, servo=servo, axis=axis)
+                self.mc.communication.set_register(key.identifier, value, servo=servo, axis=axis)
             self.logger.debug(
                 "Feedback test changes applied", axis=axis, drive=self.mc.servo_name(servo)
             )
@@ -245,7 +245,7 @@ class DriveTests:
         output = commutation.run()
         if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
             for key, value in output.suggested_registers.items():
-                self.mc.communication.set_register(key, value, servo=servo, axis=axis)
+                self.mc.communication.set_register(key.identifier, value, servo=servo, axis=axis)
             self.logger.debug(
                 "Commutation changes applied", axis=axis, drive=self.mc.servo_name(servo)
             )
@@ -417,7 +417,7 @@ class DriveTests:
         output = dc_feedback_polarity_test.run()
         if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
             for key, value in output.suggested_registers.items():
-                self.mc.communication.set_register(key, value, servo=servo, axis=axis)
+                self.mc.communication.set_register(key.identifier, value, servo=servo, axis=axis)
             self.logger.debug(
                 "Single phase feedback polarity test changes applied",
                 axis=axis,

@@ -11,12 +11,13 @@ from typing import (
     Generic,
     Optional,
     TypeVar,
-    Union,
 )
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
+from ingenialink.register import Register
+from ingenialink.utils._utils import REG_VALUE
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.metaclass import DEFAULT_SERVO
@@ -41,22 +42,39 @@ class TestConfigurationError(TestError):
     """Test configuration exception."""
 
 
+RegisterChangeProposal = dict[Register, REG_VALUE]
+
+
 @dataclass(eq=False)
-class ReportBase(dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]):
+class ReportBase:
     """Base class for result reports."""
 
     result_severity: SeverityLevel
     """Severity level."""
     result_message: str
     """Message explaining the result."""
-    suggested_registers: dict[str, Union[int, float, str]]
+    suggested_registers: RegisterChangeProposal
     """Register values suggested by the test."""
 
-    def __post_init__(self) -> None:
-        """Populate the legacy dictionary representation."""
-        self["result_severity"] = self.result_severity
-        self["result_message"] = self.result_message
-        self["suggested_registers"] = self.suggested_registers
+    def __getitem__(self, key: str) -> Any:
+        """Read a report field using the legacy dictionary syntax.
+
+        Args:
+            key: Report field name.
+
+        Returns:
+            The value associated with the report field.
+
+        Raises:
+            KeyError: If the field name is not recognized.
+        """
+        if key == "result_severity":
+            return self.result_severity
+        if key == "result_message":
+            return self.result_message
+        if key == "suggested_registers":
+            return self.suggested_registers
+        raise KeyError(key)
 
 
 T = TypeVar("T", bound=ReportBase)
@@ -70,12 +88,21 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     def __init__(self) -> None:
         super().__init__()
-        self.suggested_registers: dict[str, Union[int, float, str]] = {}
+        self.suggested_registers: RegisterChangeProposal = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
         self.report: Optional[T] = None
         self.logger = ingenialogger.get_logger(__name__)
+
+    def suggest_register(self, register: Register, value: REG_VALUE) -> None:
+        """Suggest a value for a drive register.
+
+        Args:
+            register: Drive register.
+            value: Value recommended by the test.
+        """
+        self.suggested_registers[register] = value
 
     @weak_lru()
     def _get_servo(self) -> "Servo":

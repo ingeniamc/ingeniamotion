@@ -1,6 +1,7 @@
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
+from ingenialink.register import Register
 from ingenialink.utils._utils import REG_VALUE
 
 from ingeniamotion.errors import MOCO_ERROR_QUEUE, AxisErrors, ServoErrorQueue
@@ -33,25 +34,36 @@ class Axis:
         """The axis number."""
         return self.__axis_number
 
-    def read(self, reg_uid: str) -> REG_VALUE:
+    def read(self, reg: Union[str, Register]) -> REG_VALUE:
         """Read a register of this axis.
 
         Args:
-            reg_uid: register UID to read.
+            reg: register UID or register to read.
 
         Returns:
             The register value.
         """
-        return self.__motion_node.servo.read(reg_uid, subnode=self.__axis_number)
+        return self.__motion_node.servo.read(reg, subnode=self.__axis_number)
 
-    def write(self, reg_uid: str, value: REG_VALUE) -> None:
+    def write(self, reg: Union[str, Register], value: REG_VALUE) -> None:
         """Write a register of this axis.
 
         Args:
-            reg_uid: register UID to write.
+            reg: register UID or register to write.
             value: value to write.
         """
-        self.__motion_node.servo.write(reg_uid, value, subnode=self.__axis_number)
+        self.__motion_node.servo.write(reg, value, subnode=self.__axis_number)
+
+    def get_register(self, reg_uid: str) -> Register:
+        """Get a register of this axis from the drive dictionary.
+
+        Args:
+            reg_uid: register UID to look up.
+
+        Returns:
+            The register.
+        """
+        return self.__motion_node.servo.dictionary.get_register(reg_uid, axis=self.__axis_number)
 
     @cached_property
     def errors(self) -> AxisErrors:
