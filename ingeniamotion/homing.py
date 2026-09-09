@@ -82,16 +82,17 @@ class Homing:
         # Save previous mode
         prev_op_mode = self.mc.motion.get_operation_mode(servo, axis)
 
-        self.mc.communication.set_register(
-            self.HOMING_MODE_REGISTER, HomingMode.CURRENT_POSITION, servo, axis
-        )
-        self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, hom_offset, servo, axis)
-        self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
+        try:
+            self.mc.communication.set_register(
+                self.HOMING_MODE_REGISTER, HomingMode.CURRENT_POSITION, servo, axis
+            )
+            self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, hom_offset, servo, axis)
+            self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
 
-        # Perform the homing
-        self.mc.motion.target_latch(servo, axis)
-        # Restore op mode
-        self.mc.motion.set_operation_mode(prev_op_mode, servo, axis)
+            # Perform the homing
+            self.mc.motion.target_latch(servo, axis)
+        finally:
+            self.mc.motion.set_operation_mode(prev_op_mode, servo, axis)
 
     def homing_on_switch_limit(
         self,
