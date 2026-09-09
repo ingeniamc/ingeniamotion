@@ -94,6 +94,17 @@ def _cleanup_homing_motion(mc: "MotionController", alias: str) -> None:
         raise cleanup_error
 
 
+def _wait_for_homing_motion(mc: "MotionController", alias: str, timeout_s: float) -> None:
+    deadline = time.monotonic() + timeout_s
+    motion_started = False
+    while time.monotonic() < deadline:
+        if abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05:
+            motion_started = True
+            break
+        time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
+    assert motion_started, "Homing motion did not start within the configured timeout"
+
+
 @pytest.fixture
 def initial_position(mc: "MotionController", alias: str) -> int:
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -257,9 +268,8 @@ def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", 
                 mc.motion.target_latch(servo=alias)
             finally:
                 _log_homing_diagnostics(mc, alias, "after target_latch")
-            time.sleep(1)
-            _log_homing_diagnostics(mc, alias, "after one-second motion wait")
-            assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
+            _wait_for_homing_motion(mc, alias, homing_timeout / 1000)
+            _log_homing_diagnostics(mc, alias, "after homing motion started")
             time.sleep(homing_timeout / 1000)
             assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(
                 mc, alias, velocity=True
