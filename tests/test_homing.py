@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any, Callable
 
 import pytest
 
@@ -14,7 +15,12 @@ HOMING_SEARCH_VELOCITY_REGISTER = "HOM_SPEED_SEARCH"
 HOMING_INDEX_PULSE_SOURCE_REGISTER = "HOM_IDX_PULSE_SRC"
 POSITIVE_HOMING_SWITCH_REGISTER = "IO_IN_POS_HOM_SWITCH"
 NEGATIVE_HOMING_SWITCH_REGISTER = "IO_IN_NEG_HOM_SWITCH"
+CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
+OPERATION_MODE_COMMAND_REGISTER = "DRV_OP_CMD"
+OPERATION_MODE_DISPLAY_REGISTER = "DRV_OP_VALUE"
+POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
+COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
 
 STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
@@ -26,36 +32,145 @@ RELATIVE_ERROR_ALLOWED = 3e-2
 logger = logging.getLogger(__name__)
 
 
-def _log_current_position_homing_state(mc, alias, phase):
+def _read_drive_state_value(phase: str, field: str, reader: Callable[[], Any]) -> Any:
     try:
-        state = {
-            "operation_mode": mc.motion.get_operation_mode(servo=alias, axis=1),
-            "control_word": mc.communication.get_register("DRV_STATE_CONTROL", servo=alias, axis=1),
-            "status_word": mc.configuration.get_status_word(servo=alias, axis=1),
-            "actual_position": mc.motion.get_actual_position(servo=alias, axis=1),
-            "actual_velocity": mc.motion.get_actual_velocity(servo=alias, axis=1),
-            "homing_mode": mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias, axis=1),
-            "homing_offset": mc.communication.get_register(
-                HOMING_OFFSET_REGISTER, servo=alias, axis=1
-            ),
-            "motor_enabled": mc.configuration.is_motor_enabled(servo=alias, axis=1),
-        }
+        return reader()
     except Exception:
-        logger.exception("Unable to read current-position homing state at %s", phase)
-        return
-    logger.info("Current-position homing state at %s: %s", phase, state)
+        logger.exception("Unable to read drive state field %s at %s", field, phase)
+        return None
+
+
+def _log_drive_state(mc, alias, phase: str) -> None:
+    state = {
+        "operation_mode": _read_drive_state_value(
+            phase,
+            "operation_mode_display",
+            lambda: mc.motion.get_operation_mode(servo=alias, axis=1),
+        ),
+        "operation_mode_command": _read_drive_state_value(
+            phase,
+            OPERATION_MODE_COMMAND_REGISTER,
+            lambda: mc.communication.get_register(
+                OPERATION_MODE_COMMAND_REGISTER, servo=alias, axis=1
+            ),
+        ),
+        "control_word": _read_drive_state_value(
+            phase,
+            CONTROL_WORD_REGISTER,
+            lambda: mc.communication.get_register(CONTROL_WORD_REGISTER, servo=alias, axis=1),
+        ),
+        "status_word": _read_drive_state_value(
+            phase,
+            "status_word",
+            lambda: mc.configuration.get_status_word(servo=alias, axis=1),
+        ),
+        "position_set_point": _read_drive_state_value(
+            phase,
+            POSITION_SET_POINT_REGISTER,
+            lambda: mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias, axis=1),
+        ),
+        "velocity_set_point": _read_drive_state_value(
+            phase,
+            VELOCITY_SET_POINT_REGISTER,
+            lambda: mc.communication.get_register(VELOCITY_SET_POINT_REGISTER, servo=alias, axis=1),
+        ),
+        "actual_position": _read_drive_state_value(
+            phase,
+            "actual_position",
+            lambda: mc.motion.get_actual_position(servo=alias, axis=1),
+        ),
+        "actual_velocity": _read_drive_state_value(
+            phase,
+            "actual_velocity",
+            lambda: mc.motion.get_actual_velocity(servo=alias, axis=1),
+        ),
+        "homing_mode": _read_drive_state_value(
+            phase,
+            HOMING_MODE_REGISTER,
+            lambda: mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias, axis=1),
+        ),
+        "homing_offset": _read_drive_state_value(
+            phase,
+            HOMING_OFFSET_REGISTER,
+            lambda: mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias, axis=1),
+        ),
+        "commutation_angle_offset": _read_drive_state_value(
+            phase,
+            COMMUTATION_ANGLE_OFFSET_REGISTER,
+            lambda: mc.communication.get_register(
+                COMMUTATION_ANGLE_OFFSET_REGISTER, servo=alias, axis=1
+            ),
+        ),
+        "motor_enabled": _read_drive_state_value(
+            phase,
+            "motor_enabled",
+            lambda: mc.configuration.is_motor_enabled(servo=alias, axis=1),
+        ),
+    }
+    error_state = {
+        "total_errors": _read_drive_state_value(
+            phase,
+            "total_errors",
+            lambda: mc.errors.get_number_total_errors(servo=alias, axis=1),
+        ),
+        "last_buffer_error": _read_drive_state_value(
+            phase,
+            "last_buffer_error",
+            lambda: mc.errors.get_last_buffer_error(servo=alias, axis=1),
+        ),
+    }
+    logger.info("Drive state at %s: state=%s error_state=%s", phase, state, error_state)
 
 
 @pytest.fixture
 def initial_position(mc, alias):
-    mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    position = position_resolution // 2
+    logger.info("Initial-position fixture starting")
+    _log_drive_state(mc, alias, "initial_position fixture start")
     try:
+        mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+    except Exception:
+        logger.exception("Initial-position fixture failed to set profile-position mode")
+        _log_drive_state(mc, alias, "initial_position operation mode failure")
+        raise
+    _log_drive_state(mc, alias, "initial_position after profile-position mode")
+
+    try:
+        position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+    except Exception:
+        logger.exception("Initial-position fixture failed to read position resolution")
+        _log_drive_state(mc, alias, "initial_position position resolution failure")
+        raise
+    position = position_resolution // 2
+    logger.info(
+        "Initial-position target calculated: position_resolution=%s target_position=%s",
+        position_resolution,
+        position,
+    )
+    _log_drive_state(mc, alias, "initial_position before motor enable")
+
+    try:
+        logger.info("Initial-position motor enable starting: target_position=%s", position)
         mc.motion.motor_enable(servo=alias)
+        _log_drive_state(mc, alias, "initial_position after motor enable")
+        logger.info("Initial-position move starting: target_position=%s", position)
         mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+        _log_drive_state(mc, alias, "initial_position after move")
+    except Exception:
+        logger.exception("Initial-position move failed: target_position=%s", position)
+        _log_drive_state(mc, alias, "initial_position move failure")
+        raise
     finally:
-        mc.motion.motor_disable(servo=alias)
+        _log_drive_state(mc, alias, "initial_position before motor disable")
+        logger.info("Initial-position motor disable starting: target_position=%s", position)
+        try:
+            mc.motion.motor_disable(servo=alias)
+        except Exception:
+            logger.exception("Initial-position motor disable failed: target_position=%s", position)
+            _log_drive_state(mc, alias, "initial_position motor disable failure")
+            raise
+        _log_drive_state(mc, alias, "initial_position after motor disable")
+    logger.info("Initial-position fixture completed: target_position=%s", position)
+    _log_drive_state(mc, alias, "initial_position fixture complete")
     return position
 
 
@@ -101,9 +216,9 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
         ],
     ):
         try:
-            _log_current_position_homing_state(mc, alias, "before homing")
+            _log_drive_state(mc, alias, "before homing")
             mc.configuration.homing_on_current_position(homing_offset, servo=alias)
-            _log_current_position_homing_state(mc, alias, "after homing")
+            _log_drive_state(mc, alias, "after homing")
             feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
             assert pytest.approx(
                 homing_offset,
@@ -111,16 +226,16 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
             ) == mc.motion.get_actual_position(servo=alias)
         except Exception:
             logger.exception("Current-position homing failed for offset %s", homing_offset)
-            _log_current_position_homing_state(mc, alias, "after homing failure")
+            _log_drive_state(mc, alias, "after homing failure")
             raise
         finally:
-            _log_current_position_homing_state(mc, alias, "before latch cleanup")
+            _log_drive_state(mc, alias, "before latch cleanup")
             cleared_control_word = mc.motion._clear_target_latch(servo=alias, axis=1)
             logger.info(
                 "Current-position homing latch cleanup completed: control_word=%s",
                 cleared_control_word,
             )
-            _log_current_position_homing_state(mc, alias, "after latch cleanup")
+            _log_drive_state(mc, alias, "after latch cleanup")
 
 
 @pytest.mark.ethernet
