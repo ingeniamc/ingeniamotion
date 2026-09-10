@@ -4,6 +4,7 @@
 ### Added
 - Add SDCP servo support.
 - Add `Axis.feedbacks` (`AxisFeedbacks`), a typed API for configuring and accessing an axis's feedback slots.
+- Add `MotionNode.capture` (`MotionNodeCapture`), a typed API for the monitoring and disturbance operations of a motion node, which caches the detected monitoring version.
 
 ### Changed
 - Refactor feedback management around `Axis.feedbacks`; the legacy `Feedbacks` API remains available for backward compatibility.

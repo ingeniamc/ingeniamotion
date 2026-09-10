@@ -1,8 +1,8 @@
 import contextlib
 import functools
 import weakref
-from collections.abc import Generator, Sequence
-from typing import Any, Callable, Optional, TypeVar, cast
+from collections.abc import Callable, Generator, Mapping, Sequence
+from typing import Any, Optional, TypeVar, cast
 
 from exceptiongroup import ExceptionGroup
 
@@ -87,3 +87,31 @@ def weak_lru(
         return cast("Callable[..., _T]", wrapper)
 
     return decorator
+
+
+@contextlib.contextmanager
+def map_exceptions(
+    mapping: Mapping[type[Exception], Callable[[], Exception]],
+) -> Generator[None, None, None]:
+    """Context manager that raises a mapped exception instead of the caught one.
+
+    Args:
+        mapping: exception type to a zero-argument exception factory.
+
+    Yields:
+        None, while the wrapped code runs.
+
+    Raises:
+        Exception: the mapped exception, when a mapped exception type is raised.
+
+    Example:
+        with map_exceptions({ILRegisterNotFoundError: IMRegisterNotExistError}):
+            servo.read("MON_DIST_STATUS", subnode=0)
+    """
+    try:
+        yield
+    except tuple(mapping) as exc:
+        exception_factory = next(
+            mapped for caught, mapped in mapping.items() if isinstance(exc, caught)
+        )
+        raise exception_factory() from exc
