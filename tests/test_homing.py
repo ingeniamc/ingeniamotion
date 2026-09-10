@@ -447,47 +447,40 @@ def test_homing_on_switch_limit_and_index_pulse(
         zero_vel = 7.0
         switch = 3
         sensor_index = 1
-        try:
-            mc.configuration.homing_on_switch_limit_and_index_pulse(
-                homing_offset,
-                direction,
-                switch,
-                sensor_index,
-                homing_timeout,
-                search_vel,
-                zero_vel,
-                servo=alias,
-                motor_enable=False,
-            )
-            test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
-            test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
-            test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
-            test_op_mode = mc.motion.get_operation_mode(servo=alias)
-            test_search_vel = mc.communication.get_register(
-                HOMING_SEARCH_VELOCITY_REGISTER, servo=alias
-            )
-            test_zero_vel = mc.communication.get_register(
-                HOMING_ZERO_VELOCITY_REGISTER, servo=alias
-            )
-            switch_register = (
-                POSITIVE_HOMING_SWITCH_REGISTER
-                if direction == 1
-                else NEGATIVE_HOMING_SWITCH_REGISTER
-            )
-            test_switch = mc.communication.get_register(switch_register, servo=alias)
-            test_sensor_index = mc.communication.get_register(
-                HOMING_INDEX_PULSE_SOURCE_REGISTER, servo=alias
-            )
-            assert test_offset == homing_offset
-            assert test_timeout == homing_timeout
-            if direction == 1:
-                assert test_hom_mode == HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE
-            elif direction == 0:
-                assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE
-            assert test_op_mode == OperationMode.HOMING
-            assert pytest.approx(zero_vel) == test_zero_vel
-            assert pytest.approx(search_vel) == test_search_vel
-            assert test_switch == switch
-            assert test_sensor_index == sensor_index
-        finally:
-            _cleanup_homing_motion(mc, alias)
+        mc.configuration.homing_on_switch_limit_and_index_pulse(
+            homing_offset,
+            direction,
+            switch,
+            sensor_index,
+            homing_timeout,
+            search_vel,
+            zero_vel,
+            servo=alias,
+            motor_enable=False,
+        )
+        test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
+        test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
+        test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
+        test_op_mode = mc.motion.get_operation_mode(servo=alias)
+        test_search_vel = mc.communication.get_register(
+            HOMING_SEARCH_VELOCITY_REGISTER, servo=alias
+        )
+        test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
+        switch_register = (
+            POSITIVE_HOMING_SWITCH_REGISTER if direction == 1 else NEGATIVE_HOMING_SWITCH_REGISTER
+        )
+        test_switch = mc.communication.get_register(switch_register, servo=alias)
+        test_sensor_index = mc.communication.get_register(
+            HOMING_INDEX_PULSE_SOURCE_REGISTER, servo=alias
+        )
+        assert test_offset == homing_offset
+        assert test_timeout == homing_timeout
+        if direction == 1:
+            assert test_hom_mode == HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE
+        elif direction == 0:
+            assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE
+        assert test_op_mode == OperationMode.HOMING
+        assert pytest.approx(zero_vel) == test_zero_vel
+        assert pytest.approx(search_vel) == test_search_vel
+        assert test_switch == switch
+        assert test_sensor_index == sensor_index
