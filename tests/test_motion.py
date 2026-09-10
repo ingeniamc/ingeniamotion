@@ -101,6 +101,8 @@ def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> Non
         _debug_target_latch_state(mc, alias, "before setup")
         mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
         _debug_target_latch_state(mc, alias, "after latch mode setup")
+        mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+        _debug_target_latch_state(mc, alias, "after profile-position mode setup")
         mc.motion.motor_enable(servo=alias)
         _debug_target_latch_state(mc, alias, "after motor enable")
         pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
