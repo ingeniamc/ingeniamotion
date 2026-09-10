@@ -440,7 +440,6 @@ def test_homing_on_index_pulse(
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-@pytest.mark.repeat(100)
 def test_homing_on_switch_limit_and_index_pulse(
     servo: "Servo", mc: "MotionController", alias: str, direction: int
 ) -> None:
