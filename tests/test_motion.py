@@ -1,3 +1,4 @@
+import logging
 import sys
 import time
 from types import SimpleNamespace
@@ -41,6 +42,36 @@ ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
 VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
+logger = logging.getLogger(__name__)
+
+TARGET_LATCH_DEBUG_REGISTERS = (
+    PROFILER_LATCHING_MODE_REGISTER,
+    Motion.CONTROL_WORD_REGISTER,
+    "DRV_STATE_STATUS",
+    OPERATION_MODE_REGISTER,
+    "DRV_OP_VALUE",
+    POSITION_SET_POINT_REGISTER,
+    ACTUAL_POSITION_REGISTER,
+    ACTUAL_VELOCITY_REGISTER,
+)
+
+
+def _get_debug_target_latch_register(mc: "MotionController", alias: str, register: str):
+    try:
+        return mc.communication.get_register(register, servo=alias)
+    except exceptions.ILError as error:
+        return f"{type(error).__name__}: {error}"
+
+
+def _debug_target_latch_state(mc: "MotionController", alias: str, label: str) -> None:
+    if not logger.isEnabledFor(logging.INFO):
+        return
+
+    state = {}
+    for register in TARGET_LATCH_DEBUG_REGISTERS:
+        state[register] = _get_debug_target_latch_register(mc, alias, register)
+    logger.info("Target latch %s: %s", label, state)
+
 
 def delayed_function_return(delay_s: int, first_response: Any, delayed_response: Any):
     """Generates two different returns, second one after a delay.
@@ -67,22 +98,40 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.repeat(100)
 def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> None:
     with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+        _debug_target_latch_state(mc, alias, "before setup")
         mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
+        _debug_target_latch_state(mc, alias, "after latch mode setup")
         mc.motion.motor_enable(servo=alias)
+        _debug_target_latch_state(mc, alias, "after motor enable")
         pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
         init_pos = int(mc.motion.get_actual_position(servo=alias))
         target_pos = init_pos + pos_res
         position_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+        logger.info(
+            "Target latch position setup: resolution=%s initial=%s target=%s tolerance=%s",
+            pos_res,
+            init_pos,
+            target_pos,
+            position_tolerance,
+        )
 
+        logger.info("Target latch writing pending setpoint %s", target_pos)
         mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
+        _debug_target_latch_state(mc, alias, "after setpoint write")
         mc.motion.wait_for_position(init_pos, servo=alias, error=position_tolerance, timeout=1)
         test_act_pos = mc.motion.get_actual_position(servo=alias)
+        logger.info("Target latch pending-position check: actual=%s", test_act_pos)
         assert pytest.approx(init_pos, abs=position_tolerance) == test_act_pos
+        _debug_target_latch_state(mc, alias, "before target latch")
 
+        logger.info("Target latch triggering target %s", target_pos)
         mc.motion.target_latch(servo=alias)
+        _debug_target_latch_state(mc, alias, "after target latch")
         mc.motion.wait_for_position(target_pos, servo=alias, error=position_tolerance, timeout=5)
         test_act_pos = mc.motion.get_actual_position(servo=alias)
+        logger.info("Target latch target-position check: actual=%s", test_act_pos)
         assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
+        _debug_target_latch_state(mc, alias, "after target position")
 
 
 @pytest.mark.virtual
