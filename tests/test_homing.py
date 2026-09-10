@@ -1,12 +1,18 @@
 import sys
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import pytest
 
 from ingeniamotion.enums import HomingMode, OperationMode, SensorType
 from ingeniamotion.homing import Homing
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
+
+if TYPE_CHECKING:
+    from ingenialink.servo import Servo
+    from pytest_mock import MockFixture
+
+    from ingeniamotion.motion_controller import MotionController
 
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
@@ -25,8 +31,77 @@ HOMING_STATUS_POLL_INTERVAL_S = 0.01
 RELATIVE_ERROR_ALLOWED = 3e-2
 
 
+def _cleanup_homing_motion(mc: "MotionController", alias: str) -> None:
+    """Cleanup homing motion by disabling the motor and clearing the target latch."
+
+    Args:
+        mc: The motion controller instance.
+        alias: The alias of the servo.
+
+    Raises:
+        Exception: If an error occurs during cleanup.
+    """
+    original_exception = sys.exc_info()[1]
+    cleanup_error: Optional[Exception] = None
+    try:
+        mc.motion.motor_disable(servo=alias)
+    except Exception as error:
+        cleanup_error = error
+    try:
+        mc.motion._clear_target_latch(servo=alias, axis=1)
+    except Exception as error:
+        if cleanup_error is None:
+            cleanup_error = error
+    if original_exception is None and cleanup_error is not None:
+        raise cleanup_error
+
+
+def _wait_for_homing_motion(mc: "MotionController", alias: str, timeout_s: float) -> None:
+    """Wait for the homing motion to start within the specified timeout.
+
+    Args:
+        mc: The motion controller instance.
+        alias: The alias of the servo.
+        timeout_s: The timeout in seconds to wait for the homing motion to start.
+
+    Raises:
+        AssertionError: If the homing motion does not start within the specified timeout.
+    """
+    deadline = time.monotonic() + timeout_s
+    motion_started = False
+    while time.monotonic() < deadline:
+        actual_velocity = mc.motion.get_actual_velocity(servo=alias)
+        if abs(actual_velocity) > 0.05:
+            motion_started = True
+            break
+        time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
+    assert motion_started, "Homing motion did not start within the configured timeout"
+
+
+def _wait_for_homing_stop(mc: "MotionController", alias: str, timeout_s: float) -> None:
+    """Wait for the homing motion to stop within the specified timeout.
+
+    Args:
+        mc: The motion controller instance.
+        alias: The alias of the servo.
+        timeout_s: The timeout in seconds to wait for the homing motion to stop.
+
+    Raises:
+        AssertionError: If the homing motion does not stop within the specified timeout.
+    """
+    deadline = time.monotonic() + timeout_s
+    motion_stopped = False
+    while time.monotonic() < deadline:
+        actual_velocity = mc.motion.get_actual_velocity(servo=alias)
+        if abs(actual_velocity) <= 0.05:
+            motion_stopped = True
+            break
+        time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
+    assert motion_stopped, "Homing motion did not stop within the configured timeout"
+
+
 @pytest.fixture
-def initial_position(mc, alias):
+def initial_position(mc: "MotionController", alias: str) -> int:
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     position = position_resolution // 2
@@ -35,25 +110,13 @@ def initial_position(mc, alias):
         mc.motion.motor_enable(servo=alias)
         mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
     finally:
-        original_exception = sys.exc_info()[1]
-        cleanup_error: Optional[Exception] = None
-        try:
-            mc.motion.motor_disable(servo=alias)
-        except Exception as error:
-            cleanup_error = error
-        try:
-            mc.motion._clear_target_latch(servo=alias, axis=1)
-        except Exception as error:
-            if cleanup_error is None:
-                cleanup_error = error
-        if original_exception is None and cleanup_error is not None:
-            raise cleanup_error
+        _cleanup_homing_motion(mc, alias)
     return position
 
 
 @pytest.mark.virtual
 @pytest.mark.parametrize("homing_mode", list(HomingMode))
-def test_set_homing_mode(mc, alias, homing_mode):
+def test_set_homing_mode(mc: "MotionController", alias: str, homing_mode: "HomingMode") -> None:
     mc.configuration.set_homing_mode(homing_mode, servo=alias)
     test_homing_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
     assert test_homing_mode == homing_mode
@@ -61,7 +124,7 @@ def test_set_homing_mode(mc, alias, homing_mode):
 
 @pytest.mark.virtual
 @pytest.mark.parametrize("homing_offset", [0, 10, 500, -12, -100, 1000])
-def test_set_homing_offset(mc, alias, homing_offset):
+def test_set_homing_offset(mc: "MotionController", alias: str, homing_offset: int) -> None:
     mc.configuration.set_homing_offset(homing_offset, servo=alias)
     test_homing_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
     assert test_homing_offset == homing_offset
@@ -69,7 +132,7 @@ def test_set_homing_offset(mc, alias, homing_offset):
 
 @pytest.mark.virtual
 @pytest.mark.parametrize("homing_timeout", [0, 10, 500, 1000, 5000, 10000])
-def test_set_homing_timeout(mc, alias, homing_timeout):
+def test_set_homing_timeout(mc: "MotionController", alias: str, homing_timeout: int) -> None:
     mc.configuration.set_homing_timeout(homing_timeout, servo=alias)
     test_homing_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
     assert test_homing_timeout == homing_timeout
@@ -84,7 +147,9 @@ def test_set_homing_timeout(mc, alias, homing_timeout):
     specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-815",
 )
-def test_homing_on_current_position(servo, mc, alias, homing_offset):
+def test_homing_on_current_position(
+    servo: "Servo", mc: "MotionController", alias: str, homing_offset: int
+) -> None:
     with refresh_registers_for_test_rollback(
         servo,
         [
@@ -107,7 +172,9 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-def test_homing_on_switch_limit(servo, mc, alias, direction):
+def test_homing_on_switch_limit(
+    servo: "Servo", mc: "MotionController", alias: str, direction: int
+) -> None:
     with refresh_registers_for_test_rollback(
         servo,
         [
@@ -157,15 +224,7 @@ def test_homing_on_switch_limit(servo, mc, alias, direction):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-776",
-)
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.CAN_SETUP",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-776",
-)
-def test_homing_on_switch_limit_timeout(servo, mc, alias):
+def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", alias: str) -> None:
     with refresh_registers_for_test_rollback(
         servo,
         [
@@ -178,27 +237,31 @@ def test_homing_on_switch_limit_timeout(servo, mc, alias):
         zero_vel = 1.0
         switch = 2
         direction = 1
-        mc.configuration.homing_on_switch_limit(
-            homing_offset,
-            direction,
-            switch,
-            homing_timeout,
-            search_vel,
-            zero_vel,
-            servo=alias,
-            motor_enable=False,
-        )
-        time.sleep(homing_timeout / 1000)
-        assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
-        mc.motion.motor_enable(servo=alias)
-        mc.motion.target_latch(servo=alias)
-        time.sleep(1)
-        assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
-        time.sleep(homing_timeout / 1000)
-        assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
+        try:
+            mc.configuration.homing_on_switch_limit(
+                homing_offset,
+                direction,
+                switch,
+                homing_timeout,
+                search_vel,
+                zero_vel,
+                servo=alias,
+                motor_enable=False,
+            )
+            time.sleep(homing_timeout / 1000)
+            assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(
+                mc, alias, velocity=True
+            )
+            mc.motion.motor_enable(servo=alias)
+            mc.motion.target_latch(servo=alias)
+            _wait_for_homing_motion(mc, alias, homing_timeout / 1000)
+            time.sleep(homing_timeout / 1000)
+            _wait_for_homing_stop(mc, alias, homing_timeout / 1000)
+        finally:
+            _cleanup_homing_motion(mc, alias)
 
 
-def __check_index_pulse_is_allowed(feedback_list):
+def __check_index_pulse_is_allowed(feedback_list: list["SensorType"]) -> tuple[bool, int]:
     motor_enable = True
     if SensorType.QEI in feedback_list:
         sensor_index = 0
@@ -218,7 +281,9 @@ def _format_homing_status_sequence(status_sequence: list[tuple[float, int]]) -> 
     )
 
 
-def __check_homing_was_successful(mc, alias, timeout_ms) -> tuple[bool, str]:
+def __check_homing_was_successful(
+    mc: "MotionController", alias: str, timeout_ms: int
+) -> tuple[bool, str]:
     start_time = time.monotonic()
     deadline = start_time + timeout_ms / 1000
     homing_started = False
@@ -254,7 +319,7 @@ def __check_homing_was_successful(mc, alias, timeout_ms) -> tuple[bool, str]:
 
 
 @pytest.mark.virtual
-def test_homing_status_checker_accepts_clear_then_attained(mocker):
+def test_homing_status_checker_accepts_clear_then_attained(mocker: "MockFixture") -> None:
     mc = mocker.Mock()
     mc.configuration.get_status_word.side_effect = [0x4237, 0x5237]
     mocker.patch("tests.test_homing.time.sleep")
@@ -270,7 +335,7 @@ def test_homing_status_checker_accepts_clear_then_attained(mocker):
 
 
 @pytest.mark.virtual
-def test_homing_status_checker_reports_stale_attained_bit(mocker):
+def test_homing_status_checker_reports_stale_attained_bit(mocker: "MockFixture") -> None:
     mc = mocker.Mock()
     mc.configuration.get_status_word.return_value = 0x5237
     mocker.patch("tests.test_homing.time.sleep")
@@ -288,7 +353,7 @@ def test_homing_status_checker_reports_stale_attained_bit(mocker):
 
 
 @pytest.mark.virtual
-def test_current_position_homing_restores_operation_mode_on_failure(mocker) -> None:
+def test_current_position_homing_restores_operation_mode_on_failure(mocker: "MockFixture") -> None:
     """Test that the operation mode is restored after a homing failure on the current position."""
     mc = mocker.Mock()
     mc.motion.get_operation_mode.return_value = OperationMode.PROFILE_POSITION
@@ -313,7 +378,13 @@ def test_current_position_homing_restores_operation_mode_on_failure(mocker) -> N
     max="2.8.1",
     skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-493 (fixed in 2.9.0)",
 )
-def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
+def test_homing_on_index_pulse(
+    servo: "Servo",
+    mc: "MotionController",
+    alias: str,
+    feedback_list: list["SensorType"],
+    direction: int,
+) -> None:
     with refresh_registers_for_test_rollback(
         servo,
         [
@@ -377,7 +448,9 @@ def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
     specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-777",
 )
-def test_homing_on_switch_limit_and_index_pulse(servo, mc, alias, direction):
+def test_homing_on_switch_limit_and_index_pulse(
+    servo: "Servo", mc: "MotionController", alias: str, direction: int
+) -> None:
     with refresh_registers_for_test_rollback(
         servo,
         [
