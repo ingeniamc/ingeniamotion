@@ -14,6 +14,7 @@ from ingeniamotion.motion import Motion
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
 if TYPE_CHECKING:
+    from ingenialink.servo import Servo
     from pytest_mock import MockerFixture
 
     from ingeniamotion.motion_controller import MotionController
@@ -63,25 +64,25 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
-    skip_reason="https://novantamotion.atlassian.net/browse/CIT-780",
-)
-def test_target_latch(servo, mc, alias):
+@pytest.mark.repeat(100)
+def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> None:
     with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
         mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
         mc.motion.motor_enable(servo=alias)
         pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
-        init_pos = int(mean_actual_velocity_position(mc, alias))
+        init_pos = int(mc.motion.get_actual_position(servo=alias))
+        target_pos = init_pos + pos_res
+        position_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+
         mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
-        test_act_pos = mean_actual_velocity_position(mc, alias)
-        time.sleep(1)
-        rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-        assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
+        mc.motion.wait_for_position(init_pos, servo=alias, error=position_tolerance, timeout=1)
+        test_act_pos = mc.motion.get_actual_position(servo=alias)
+        assert pytest.approx(init_pos, abs=position_tolerance) == test_act_pos
+
         mc.motion.target_latch(servo=alias)
-        time.sleep(1)
-        test_act_pos = mean_actual_velocity_position(mc, alias)
-        assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
+        mc.motion.wait_for_position(target_pos, servo=alias, error=position_tolerance, timeout=5)
+        test_act_pos = mc.motion.get_actual_position(servo=alias)
+        assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
 
 
 @pytest.mark.virtual
