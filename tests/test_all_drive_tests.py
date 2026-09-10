@@ -122,7 +122,6 @@ def _feedback_polarity_register(mc: "MotionController", alias: str, sensor: Sens
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
 def test_digital_halls_test(
-    axis,
     servo: Servo,
     mc,
     alias,
@@ -168,7 +167,6 @@ def test_digital_halls_test(
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-783",
 )
 def test_incremental_encoder_1_test(
-    axis,
     mc,
     alias,
     feedback_list,
@@ -202,7 +200,6 @@ def test_incremental_encoder_1_test(
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-784",
 )
 def test_incremental_encoder_2_test(
-    axis,
     mc,
     alias,
     feedback_list,
@@ -238,7 +235,6 @@ def test_incremental_encoder_2_test(
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-785",
 )
 def test_absolute_encoder_1_test(
-    axis,
     mc,
     alias,
     feedback_list,
@@ -272,7 +268,6 @@ def test_absolute_encoder_1_test(
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-786",
 )
 def test_absolute_encoder_2_test(
-    axis,
     mc,
     alias,
     feedback_list,
@@ -306,7 +301,6 @@ def test_absolute_encoder_2_test(
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-787",
 )
 def test_secondary_ssi_test(
-    axis,
     mc,
     alias,
     feedback_list,

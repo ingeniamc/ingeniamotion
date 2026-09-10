@@ -16,7 +16,6 @@ from typing import (
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
-from ingenialink.exceptions import ILError
 from ingenialink.register import Register
 from ingenialink.utils._utils import REG_VALUE
 
