@@ -432,14 +432,6 @@ def test_homing_on_index_pulse(
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-777",
-)
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-777",
-)
 def test_homing_on_switch_limit_and_index_pulse(
     servo: "Servo", mc: "MotionController", alias: str, direction: int
 ) -> None:
