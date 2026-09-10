@@ -156,15 +156,12 @@ def test_homing_on_current_position(
             "COMMU_ANGLE_OFFSET",
         ],
     ):
-        try:
-            mc.configuration.homing_on_current_position(homing_offset, servo=alias)
-            feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-            assert pytest.approx(
-                homing_offset,
-                abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
-            ) == mc.motion.get_actual_position(servo=alias)
-        finally:
-            mc.motion.clear_target_latch(servo=alias)
+        mc.configuration.homing_on_current_position(homing_offset, servo=alias)
+        feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+        assert pytest.approx(
+            homing_offset,
+            abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
+        ) == mc.motion.get_actual_position(servo=alias)
 
 
 @pytest.mark.ethernet
@@ -237,28 +234,25 @@ def test_homing_on_switch_limit_timeout(servo: "Servo", mc: "MotionController", 
         zero_vel = 1.0
         switch = 2
         direction = 1
-        try:
-            mc.configuration.homing_on_switch_limit(
-                homing_offset,
-                direction,
-                switch,
-                homing_timeout,
-                search_vel,
-                zero_vel,
-                servo=alias,
-                motor_enable=False,
-            )
-            time.sleep(homing_timeout / 1000)
-            assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(
-                mc, alias, velocity=True
-            )
-            mc.motion.motor_enable(servo=alias)
-            mc.motion.target_latch(servo=alias)
-            _wait_for_homing_motion(mc, alias, homing_timeout / 1000)
-            time.sleep(homing_timeout / 1000)
-            _wait_for_homing_stop(mc, alias, homing_timeout / 1000)
-        finally:
-            _cleanup_homing_motion(mc, alias)
+        mc.configuration.homing_on_switch_limit(
+            homing_offset,
+            direction,
+            switch,
+            homing_timeout,
+            search_vel,
+            zero_vel,
+            servo=alias,
+            motor_enable=False,
+        )
+        time.sleep(homing_timeout / 1000)
+        assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(
+            mc, alias, velocity=True
+        )
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.target_latch(servo=alias)
+        _wait_for_homing_motion(mc, alias, homing_timeout / 1000)
+        time.sleep(homing_timeout / 1000)
+        _wait_for_homing_stop(mc, alias, homing_timeout / 1000)
 
 
 def __check_index_pulse_is_allowed(feedback_list: list["SensorType"]) -> tuple[bool, int]:
