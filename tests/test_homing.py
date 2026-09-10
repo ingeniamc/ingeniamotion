@@ -48,7 +48,7 @@ def _cleanup_homing_motion(mc: "MotionController", alias: str) -> None:
     except Exception as error:
         cleanup_error = error
     try:
-        mc.motion._clear_target_latch(servo=alias, axis=1)
+        mc.motion.clear_target_latch(servo=alias)
     except Exception as error:
         if cleanup_error is None:
             cleanup_error = error
@@ -164,7 +164,7 @@ def test_homing_on_current_position(
                 abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
             ) == mc.motion.get_actual_position(servo=alias)
         finally:
-            mc.motion._clear_target_latch(servo=alias, axis=1)
+            mc.motion.clear_target_latch(servo=alias)
 
 
 @pytest.mark.ethernet
