@@ -105,7 +105,6 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit(servo, mc, alias, direction):
     with refresh_registers_for_test_rollback(
