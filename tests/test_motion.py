@@ -357,6 +357,22 @@ def test_motor_disable(mc, alias, enable_motor):
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
 
+@pytest.mark.virtual
+def test_motor_disable_attempts_disable_when_status_read_fails(mocker) -> None:
+    """Test that motor_disable attempts to disable the motor even when reading the status fails."""
+    drive = mocker.Mock()
+    mc = SimpleNamespace(
+        _get_drive=mocker.Mock(return_value=drive),
+        configuration=SimpleNamespace(
+            is_motor_enabled=mocker.Mock(side_effect=exceptions.ILError("status unavailable"))
+        ),
+    )
+
+    Motion(mc).motor_disable()
+
+    drive.disable.assert_called_once_with(subnode=1)
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen

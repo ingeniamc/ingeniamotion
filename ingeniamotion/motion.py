@@ -228,12 +228,13 @@ class Motion:
 
         """
         drive = self.mc._get_drive(servo)
+        is_motor_enabled: Optional[bool]
         try:
             is_motor_enabled = self.mc.configuration.is_motor_enabled(servo=servo, axis=axis)
         except ILError as e:
             self.logger.info(f"Unable to check if motor is enabled. Reason: {e}")
-            return
-        if is_motor_enabled:
+            is_motor_enabled = None
+        if is_motor_enabled is not False:
             try:
                 drive.disable(subnode=axis)
             except ILError as e:
