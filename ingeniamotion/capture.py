@@ -511,7 +511,15 @@ class Capture:
     def _capture(
         self, servo: str, version: Optional[MonitoringVersion] = None
     ) -> MotionNodeCapture:
-        """Return capture operations for a motion node and optional version."""
+        """Return capture operations for a motion node and optional version.
+
+        Args:
+            servo : servo alias to reference.
+            version : monitoring version to use when the version is forced
+                instead of automatically detected. If ``None``, use the cached
+                capture operations for the motion node.
+
+        """
         motion_node = self.mc._get_motion_node(servo)
         if version is None:
             return motion_node.capture
