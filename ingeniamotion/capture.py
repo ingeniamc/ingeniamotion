@@ -1,11 +1,13 @@
 from typing import TYPE_CHECKING, Final, Optional, Union
 
 import numpy as np
+from ingenialink import Servo
 from ingenialink.dictionary import SubnodeType
-from ingenialink.exceptions import ILError
+from ingenialink.exceptions import ILError, ILRegisterNotFoundError
 from ingenialink.poller import Poller
 from numpy.typing import NDArray
 
+from ingeniamotion._utils import map_exceptions
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -26,24 +28,245 @@ from ingeniamotion.pdo import PDONetworkManager
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.motion_node import MotionNode
+
+
+_REGISTER_ERRORS: Final[dict[type[Exception], type[Exception]]] = {
+    ILRegisterNotFoundError: IMRegisterNotExistError
+}
+
+
+class MotionNodeCapture:
+    """Capture operations bound to a motion node."""
+
+    _DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
+    _MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
+    _MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+    _MONITORING_VERSION_REGISTER = "MON_DIST_VERSION"
+
+    _MONITORING_STATUS_ENABLED_BIT = 0x1
+    _DISTURBANCE_STATUS_ENABLED_BIT = 0x1
+
+    __UNSUPPORTED_MESSAGE = (
+        "The monitoring and disturbance features are not available for this drive"
+    )
+
+    def __init__(
+        self, motion_node: "MotionNode", version: Optional[MonitoringVersion] = None
+    ) -> None:
+        """Initialize capture operations for a motion node.
+
+        Args:
+            motion_node: Motion node associated with the capture operations.
+            version: Monitoring version, if ``None`` it is read from the drive.
+        """
+        self.__motion_node = motion_node
+        self.__version = version
+        self.__unsupported = False
+
+    @property
+    def version(self) -> MonitoringVersion:
+        """The monitoring version supported by the motion node.
+
+        The detected version is cached, unless a communication error made the
+        detection unreliable.
+
+        Raises:
+            NotImplementedError: If the drive does not support monitoring and disturbance.
+        """
+        if self.__version is not None:
+            return self.__version
+        if self.__unsupported:
+            raise NotImplementedError(self.__UNSUPPORTED_MESSAGE)
+
+        version, communication_failed = self.__detect_version()
+        if version is None:
+            if not communication_failed:
+                self.__unsupported = True
+            raise NotImplementedError(self.__UNSUPPORTED_MESSAGE)
+        if not communication_failed:
+            self.__version = version
+        return version
+
+    def get_monitoring_status(self) -> int:
+        """Return the monitoring status of the motion node.
+
+        Returns:
+            Monitoring status.
+
+        Raises:
+            ILRegisterNotFoundError: If the register doesn't exist.
+            TypeError: If the read value has a wrong type.
+        """
+        return self.__read_status(
+            self._MONITORING_STATUS_REGISTER,
+            "Monitoring status value has to be an integer",
+        )
+
+    def is_monitoring_enabled(self) -> bool:
+        """Check if monitoring is enabled.
+
+        Returns:
+            True if monitoring is enabled, else False.
+
+        Raises:
+            ILRegisterNotFoundError: If the register doesn't exist.
+        """
+        return (self.get_monitoring_status() & self._MONITORING_STATUS_ENABLED_BIT) == 1
+
+    def get_disturbance_status(self) -> int:
+        """Return the disturbance status of the motion node.
+
+        Returns:
+            Disturbance status.
+
+        Raises:
+            ILRegisterNotFoundError: If the register doesn't exist.
+            NotImplementedError: If the drive does not support monitoring and disturbance.
+            TypeError: If the read value has a wrong type.
+        """
+        register = (
+            self._MONITORING_STATUS_REGISTER
+            if self.version < MonitoringVersion.MONITORING_V3
+            else self._DISTURBANCE_STATUS_REGISTER
+        )
+        return self.__read_status(register, "Disturbance status value has to be an integer")
+
+    def is_disturbance_enabled(self) -> bool:
+        """Check if disturbance is enabled.
+
+        Returns:
+            True if disturbance is enabled, else False.
+
+        Raises:
+            ILRegisterNotFoundError: If the register doesn't exist.
+            NotImplementedError: If the drive does not support monitoring and disturbance.
+        """
+        return (self.get_disturbance_status() & self._DISTURBANCE_STATUS_ENABLED_BIT) == 1
+
+    def enable_monitoring(self) -> None:
+        """Enable monitoring for the motion node.
+
+        Raises:
+            IMMonitoringError: If monitoring cannot be enabled.
+        """
+        if self.__servo.monitoring_get_num_mapped_registers() == 0:
+            raise IMMonitoringError("There are no registers mapped for monitoring.")
+        self.__servo.monitoring_enable()
+        if not self.is_monitoring_enabled():
+            raise IMMonitoringError("Error enabling monitoring.")
+
+    def disable_monitoring(self) -> None:
+        """Disable monitoring for the motion node.
+
+        Raises:
+            NotImplementedError: If the drive does not support monitoring and disturbance.
+        """
+        version = self.version
+        if not self.is_monitoring_enabled():
+            return
+        self.__servo.monitoring_disable()
+        if version >= MonitoringVersion.MONITORING_V3:
+            self.__servo.monitoring_remove_data()
+
+    def enable_disturbance(self) -> None:
+        """Enable disturbance for the motion node.
+
+        Raises:
+            IMMonitoringError: If disturbance cannot be enabled.
+            NotImplementedError: If the drive does not support monitoring and disturbance.
+        """
+        if self.version < MonitoringVersion.MONITORING_V3:
+            # V1 and V2: monitoring and disturbance share the same enable
+            # mechanism. Bypass enable_monitoring() mapped-register check
+            # because disturbance-only mapped registers are sufficient.
+            self.__servo.monitoring_enable()
+        else:
+            self.__servo.disturbance_enable()
+        if not self.is_disturbance_enabled():
+            raise IMMonitoringError("Error enabling disturbance.")
+
+    def disable_disturbance(self) -> None:
+        """Disable disturbance for the motion node.
+
+        Raises:
+            NotImplementedError: If the drive does not support monitoring and disturbance.
+        """
+        if not self.is_disturbance_enabled():
+            return
+        if self.version < MonitoringVersion.MONITORING_V3:
+            self.disable_monitoring()
+            return
+        self.__servo.disturbance_disable()
+        self.__servo.disturbance_remove_data()
+
+    @property
+    def __servo(self) -> Servo:
+        """The servo of the motion node."""
+        return self.__motion_node.servo
+
+    def __detect_version(self) -> tuple[Optional[MonitoringVersion], bool]:
+        """Probe the drive to find out the supported monitoring version.
+
+        Returns:
+            The supported version, ``None`` if there is not any, and whether a
+            communication error made the detection unreliable.
+        """
+        communication_failed = False
+        candidates = (
+            (self._MONITORING_VERSION_REGISTER, MonitoringVersion.MONITORING_V3),
+            (self._MONITORING_CURRENT_NUMBER_BYTES_REGISTER, MonitoringVersion.MONITORING_V2),
+            (self._MONITORING_STATUS_REGISTER, MonitoringVersion.MONITORING_V1),
+        )
+        for register, version in candidates:
+            try:
+                self.__servo.read(register, subnode=0)
+            except ILRegisterNotFoundError:
+                continue
+            except ILError:
+                communication_failed = True
+                continue
+            return version, communication_failed
+        return None, communication_failed
+
+    def __read_status(self, register: str, type_error_message: str) -> int:
+        """Read a status register of the motion node.
+
+        Args:
+            register: register UID.
+            type_error_message: message of the error raised on a non integer value.
+
+        Returns:
+            Current register value.
+
+        Raises:
+            ILRegisterNotFoundError: If the register doesn't exist.
+            TypeError: If the read value has a wrong type.
+        """
+        value = self.__servo.read(register, subnode=0)
+        if not isinstance(value, int):
+            raise TypeError(type_error_message)
+        return value
 
 
 class Capture:
     """Capture."""
 
-    DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
+    DISTURBANCE_STATUS_REGISTER = MotionNodeCapture._DISTURBANCE_STATUS_REGISTER
     DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER = "DIST_MAX_SIZE"
-    MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
-    MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+    MONITORING_STATUS_REGISTER = MotionNodeCapture._MONITORING_STATUS_REGISTER
+    MONITORING_CURRENT_NUMBER_BYTES_REGISTER = (
+        MotionNodeCapture._MONITORING_CURRENT_NUMBER_BYTES_REGISTER
+    )
     MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
     MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
 
     MINIMUM_BUFFER_SIZE = 8192
 
-    MONITORING_VERSION_REGISTER = "MON_DIST_VERSION"
+    MONITORING_VERSION_REGISTER = MotionNodeCapture._MONITORING_VERSION_REGISTER
 
-    MONITORING_STATUS_ENABLED_BIT = 0x1
-    DISTURBANCE_STATUS_ENABLED_BIT = 0x1
+    MONITORING_STATUS_ENABLED_BIT = MotionNodeCapture._MONITORING_STATUS_ENABLED_BIT
+    DISTURBANCE_STATUS_ENABLED_BIT = MotionNodeCapture._DISTURBANCE_STATUS_ENABLED_BIT
 
     MONITORING_STATUS_PROCESS_STAGE_BITS: Final[dict[MonitoringVersion, int]] = {
         MonitoringVersion.MONITORING_V1: 0x6,
@@ -285,6 +508,15 @@ class Capture:
             self.enable_disturbance(servo=servo)
         return disturbance
 
+    def _capture(
+        self, servo: str, version: Optional[MonitoringVersion] = None
+    ) -> MotionNodeCapture:
+        """Return capture operations for a motion node and optional version."""
+        motion_node = self.mc._get_motion_node(servo)
+        if version is None:
+            return motion_node.capture
+        return MotionNodeCapture(motion_node, version)
+
     def _check_version(self, servo: str) -> MonitoringVersion:
         """Checks the version of the monitoring based on a given servo.
 
@@ -299,30 +531,7 @@ class Capture:
             and disturbance.
 
         """
-        try:
-            self.mc.communication.get_register(
-                self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
-            )
-            return MonitoringVersion.MONITORING_V3
-        except (IMRegisterNotExistError, ILError):
-            # The Monitoring V3 is NOT available
-            pass
-        try:
-            self.mc.communication.get_register(
-                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
-            )
-            return MonitoringVersion.MONITORING_V2
-        except (IMRegisterNotExistError, ILError):
-            # The Monitoring V2 is NOT available
-            pass
-        try:
-            self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
-            return MonitoringVersion.MONITORING_V1
-        except (IMRegisterNotExistError, ILError):
-            # Monitoring/disturbance are not available
-            raise NotImplementedError(
-                "The monitoring and disturbance features are not available for this drive"
-            )
+        return self._capture(servo).version
 
     def enable_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Enable monitoring and disturbance.
@@ -347,13 +556,8 @@ class Capture:
             IMMonitoringError: If monitoring can't be enabled.
 
         """
-        drive = self.mc._get_drive(servo)
-        if drive.monitoring_get_num_mapped_registers() == 0:
-            raise IMMonitoringError("There are no registers mapped for monitoring.")
-        drive.monitoring_enable()
-        # Check monitoring status
-        if not self.is_monitoring_enabled(servo=servo):
-            raise IMMonitoringError("Error enabling monitoring.")
+        with map_exceptions(_REGISTER_ERRORS):
+            self._capture(servo).enable_monitoring()
 
     def enable_disturbance(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -369,19 +573,8 @@ class Capture:
             IMMonitoringError: If disturbance can't be enabled.
 
         """
-        drive = self.mc._get_drive(servo)
-        if version is None:
-            version = self._check_version(servo)
-        if version < MonitoringVersion.MONITORING_V3:
-            # V1: monitoring and disturbance share the same enable
-            # mechanism. Bypass enable_monitoring() mapped-register check
-            # because disturbance-only mapped registers are sufficient.
-            drive.monitoring_enable()
-        else:
-            drive.disturbance_enable()
-        # Check disturbance status
-        if not self.is_disturbance_enabled(servo=servo):
-            raise IMMonitoringError("Error enabling disturbance.")
+        with map_exceptions(_REGISTER_ERRORS):
+            self._capture(servo, version).enable_disturbance()
 
     def disable_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Disable monitoring and disturbance.
@@ -404,14 +597,8 @@ class Capture:
                 if ``None`` reads from drive. ``None`` by default.
 
         """
-        drive = self.mc._get_drive(servo)
-        if version is None:
-            version = self._check_version(servo)
-        if not self.is_monitoring_enabled(servo=servo):
-            return
-        drive.monitoring_disable()
-        if version >= MonitoringVersion.MONITORING_V3:
-            drive.monitoring_remove_data()
+        with map_exceptions(_REGISTER_ERRORS):
+            self._capture(servo, version).disable_monitoring()
 
     def disable_disturbance(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -424,15 +611,8 @@ class Capture:
                 if ``None`` reads from drive. ``None`` by default.
 
         """
-        drive = self.mc._get_drive(servo)
-        if version is None:
-            version = self._check_version(servo)
-        if not self.is_disturbance_enabled(servo, version):
-            return
-        if version < MonitoringVersion.MONITORING_V3:
-            return self.disable_monitoring(servo=servo, version=version)
-        drive.disturbance_disable()
-        drive.disturbance_remove_data()
+        with map_exceptions(_REGISTER_ERRORS):
+            self._capture(servo, version).disable_disturbance()
 
     def get_monitoring_disturbance_status(self, servo: str = DEFAULT_SERVO) -> int:
         """Get Monitoring Status.
@@ -448,12 +628,8 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        monitoring_disturbance_status = self.mc.communication.get_register(
-            self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
-        )
-        if not isinstance(monitoring_disturbance_status, int):
-            raise TypeError("Monitoring and disturbance status value has to be an integer")
-        return monitoring_disturbance_status
+        with map_exceptions(_REGISTER_ERRORS):
+            return self._capture(servo).get_monitoring_status()
 
     def get_monitoring_status(self, servo: str = DEFAULT_SERVO) -> int:
         """Get Monitoring Status.
@@ -469,12 +645,8 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        monitoring_status = self.mc.communication.get_register(
-            self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
-        )
-        if not isinstance(monitoring_status, int):
-            raise TypeError("Monitoring status value has to be an integer")
-        return monitoring_status
+        with map_exceptions(_REGISTER_ERRORS):
+            return self._capture(servo).get_monitoring_status()
 
     def get_disturbance_status(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -494,19 +666,8 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        if version is None:
-            version = self._check_version(servo)
-        if version < MonitoringVersion.MONITORING_V3:
-            disturbance_status = self.mc.communication.get_register(
-                self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
-            )
-        else:
-            disturbance_status = self.mc.communication.get_register(
-                self.DISTURBANCE_STATUS_REGISTER, servo=servo, axis=0
-            )
-        if not isinstance(disturbance_status, int):
-            raise TypeError("Disturbance status value has to be an integer")
-        return disturbance_status
+        with map_exceptions(_REGISTER_ERRORS):
+            return self._capture(servo, version).get_disturbance_status()
 
     def is_monitoring_enabled(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if monitoring is enabled.
@@ -521,8 +682,8 @@ class Capture:
             IMRegisterNotExistError: If the register doesn't exist.
 
         """
-        monitor_status = self.get_monitoring_status(servo)
-        return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
+        with map_exceptions(_REGISTER_ERRORS):
+            return self._capture(servo).is_monitoring_enabled()
 
     def is_disturbance_enabled(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -541,8 +702,8 @@ class Capture:
             IMRegisterNotExistError: If the register doesn't exist.
 
         """
-        monitor_status = self.get_disturbance_status(servo, version=version)
-        return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
+        with map_exceptions(_REGISTER_ERRORS):
+            return self._capture(servo, version).is_disturbance_enabled()
 
     def get_monitoring_process_stage(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -562,7 +723,7 @@ class Capture:
 
         """
         if version is None:
-            version = self._check_version(servo=servo)
+            version = self._check_version(servo)
         monitor_status = self.mc.capture.get_monitoring_status(servo=servo)
         mask = self.MONITORING_STATUS_PROCESS_STAGE_BITS[version]
         masked_value = monitor_status & mask
@@ -586,7 +747,7 @@ class Capture:
 
         """
         if version is None:
-            version = self._check_version(servo=servo)
+            version = self._check_version(servo)
         monitor_status = self.mc.capture.get_monitoring_status(servo=servo)
         mask = self.MONITORING_AVAILABLE_FRAME_BIT[version]
         return (monitor_status & mask) != 0
