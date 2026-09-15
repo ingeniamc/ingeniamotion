@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
 from typing import (
@@ -15,7 +16,6 @@ from typing import (
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
-from ingenialink.exceptions import ILError
 from ingenialink.register import Register
 from ingenialink.utils._utils import REG_VALUE
 
@@ -167,7 +167,10 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     def teardown(self) -> None:
         """Actions to perform after the test is run."""
 
-    def run(self, registers_baseline: Optional[DriveRegistersValue] = None) -> Optional[T]:
+    def run(
+        self,
+        registers_baseline: Optional[DriveRegistersValue] = None,
+    ) -> Optional[T]:
         """Run the test.
 
         Returns:
@@ -176,6 +179,26 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
         Raises:
             ILError: If the underlying drive communication fails during the test run.
+        """
+        try:
+            with self.run_context(registers_baseline):
+                pass
+        except StopExceptionError:
+            self.logger.warning("Test has been stopped")
+
+        return self.report
+
+    @contextmanager
+    def run_context(
+        self, registers_baseline: Optional[DriveRegistersValue] = None
+    ) -> Iterator[None]:
+        """Run the test setup and keep the drive configured until context exit.
+
+        Args:
+            registers_baseline: Optional pre-built register snapshot used as the
+                restore baseline. Read from hardware when not provided.
+
+
         """
         with (
             context := DriveContextManager(
@@ -191,19 +214,16 @@ class BaseTest(ABC, Stoppable, Generic[T]):
                 self.check_stop()
                 output = self.loop()
                 self.check_stop()
-                self.report = self.generate_report(output)
-                self.check_stop()
-            except ILError as err:
-                raise err
-            except StopExceptionError:
-                self.logger.warning("Test has been stopped")
+                try:
+                    yield
+                    self.report = self.generate_report(output)
+                except StopExceptionError:
+                    self.logger.warning("Test has been stopped")
             finally:
                 try:
                     self.teardown()
                 finally:
                     self._restore_configuration(context)
-
-        return self.report
 
     def _restore_configuration(self, context: DriveContextManager) -> None:
         """Restore configuration that requires an ordered transition."""

@@ -372,7 +372,7 @@ class DriveTests:
             ``Brake.finish()`` to end the test and restore the drive state.
         """
         brake_test = Brake(self.mc, servo, axis)
-        brake_test.run()
+        brake_test.start()
         return brake_test
 
     def polarity_feedback_single_phase_test(
