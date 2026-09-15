@@ -10,7 +10,11 @@ import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import OperationMode
-from ingeniamotion.exceptions import IMRegisterNotExistError, IMTimeoutError
+from ingeniamotion.exceptions import (
+    IMErrorQueueNotExistsError,
+    IMRegisterNotExistError,
+    IMTimeoutError,
+)
 from ingeniamotion.motion import Motion
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
@@ -59,10 +63,21 @@ TARGET_LATCH_DEBUG_REGISTERS = (
 TARGET_LATCH_DIAGNOSTIC_REGISTERS = (
     "DRV_DIAG_ERROR_LAST",
     "DRV_DIAG_ERROR_TOTAL",
+    "CL_POS_CMD_VALUE",
+    "CL_VEL_CMD_VALUE",
     CURRENT_QUADRATURE_SET_POINT_REGISTER,
+    "CL_CUR_Q_REF_VALUE",
+    "CL_CUR_Q_CMD_VALUE",
     ACTUAL_QUADRATURE_CURRENT_REGISTER,
     "CL_CUR_Q_ERROR_FOLLOWING",
     "CL_POS_ERROR_FOLLOWING",
+    "MOT_RATED_CURRENT",
+    "CL_CUR_REF_MAX",
+    "MOT_BRAKE_CONFIGURATION",
+    "MOT_BRAKE_CONTROL_MODE",
+    "MOT_BRAKE_OVERRIDE",
+    "MOT_BRAKE_CUR_VALUE",
+    "MOT_BRAKE_CUR_CMD",
     "SET_POINT_SRC",
     "CL_POS_REF_MIN",
     "CL_POS_REF_MAX",
@@ -76,12 +91,26 @@ TARGET_LATCH_DIAGNOSTIC_REGISTERS = (
     "DRV_PROT_STO_STATUS",
     "CIA301_COMMS_ERROR_FIELD",
 )
+TARGET_LATCH_DIAGNOSTIC_REGISTER_AXES = {"CIA301_COMMS_ERROR_FIELD": 0}
 
 
 def _get_debug_target_latch_register(mc: "MotionController", alias: str, register: str):
     try:
-        return mc.communication.get_register(register, servo=alias)
+        axis = TARGET_LATCH_DIAGNOSTIC_REGISTER_AXES.get(register, 1)
+        return mc.communication.get_register(register, servo=alias, axis=axis)
     except (IMRegisterNotExistError, exceptions.ILError) as error:
+        return f"{type(error).__name__}: {error}"
+
+
+def _get_debug_target_latch_error_history(mc: "MotionController", alias: str):
+    try:
+        return mc.errors.get_all_errors(servo=alias, axis=1)
+    except (
+        IMErrorQueueNotExistsError,
+        IMRegisterNotExistError,
+        TypeError,
+        exceptions.ILError,
+    ) as error:
         return f"{type(error).__name__}: {error}"
 
 
@@ -97,6 +126,8 @@ def _debug_target_latch_state(
         registers += TARGET_LATCH_DIAGNOSTIC_REGISTERS
     for register in registers:
         state[register] = _get_debug_target_latch_register(mc, alias, register)
+    if detailed:
+        state["DRV_DIAG_ERROR_HISTORY"] = _get_debug_target_latch_error_history(mc, alias)
     logger.info("Target latch %s: %s", label, state)
 
 
