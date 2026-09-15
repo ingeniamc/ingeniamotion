@@ -150,62 +150,94 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
             yield delayed_response
 
 
+def _run_target_latch_motion(
+    servo: "Servo",
+    mc: "MotionController",
+    alias: str,
+    brake_released: bool = False,
+) -> None:
+    try:
+        if brake_released:
+            mc.configuration.release_brake(servo=alias)
+            assert (
+                mc.communication.get_register(
+                    mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                    servo=alias,
+                    axis=1,
+                )
+                == mc.configuration.BrakeOverride.RELEASE_BRAKE
+            )
+            logger.info("Target latch brake override set to release")
+
+        with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+            _debug_target_latch_state(mc, alias, "before setup")
+            mc.communication.set_register(
+                PROFILER_LATCHING_MODE_REGISTER,
+                PROFILE_POSITION_LATCH_MODE,
+                servo=alias,
+            )
+            _debug_target_latch_state(mc, alias, "after latch mode setup")
+            mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+            _debug_target_latch_state(mc, alias, "after profile-position mode setup")
+            mc.motion.motor_enable(servo=alias)
+            _debug_target_latch_state(mc, alias, "after motor enable")
+            pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
+            init_pos = int(mc.motion.get_actual_position(servo=alias))
+            target_pos = init_pos + pos_res
+            position_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+            logger.info(
+                "Target latch position setup: resolution=%s initial=%s target=%s tolerance=%s",
+                pos_res,
+                init_pos,
+                target_pos,
+                position_tolerance,
+            )
+
+            logger.info("Target latch writing pending setpoint %s", target_pos)
+            mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
+            _debug_target_latch_state(mc, alias, "after setpoint write")
+            mc.motion.wait_for_position(init_pos, servo=alias, error=position_tolerance, timeout=1)
+            test_act_pos = mc.motion.get_actual_position(servo=alias)
+            logger.info("Target latch pending-position check: actual=%s", test_act_pos)
+            assert pytest.approx(init_pos, abs=position_tolerance) == test_act_pos
+            _debug_target_latch_state(mc, alias, "before target latch")
+
+            logger.info("Target latch triggering target %s", target_pos)
+            try:
+                mc.motion.target_latch(servo=alias)
+            except (IMTimeoutError, TypeError, exceptions.ILError):
+                _debug_target_latch_state(mc, alias, "target latch failure", detailed=True)
+                raise
+            _debug_target_latch_state(mc, alias, "after target latch")
+            try:
+                mc.motion.wait_for_position(
+                    target_pos, servo=alias, error=position_tolerance, timeout=5
+                )
+            except IMTimeoutError:
+                _debug_target_latch_state(mc, alias, "target position timeout", detailed=True)
+                raise
+            test_act_pos = mc.motion.get_actual_position(servo=alias)
+            logger.info("Target latch target-position check: actual=%s", test_act_pos)
+            assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
+            _debug_target_latch_state(mc, alias, "after target position")
+    finally:
+        if brake_released:
+            mc.configuration.default_brake(servo=alias)
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.repeat(100)
 def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> None:
-    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
-        _debug_target_latch_state(mc, alias, "before setup")
-        mc.communication.set_register(
-            PROFILER_LATCHING_MODE_REGISTER,
-            PROFILE_POSITION_LATCH_MODE,
-            servo=alias,
-        )
-        _debug_target_latch_state(mc, alias, "after latch mode setup")
-        mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-        _debug_target_latch_state(mc, alias, "after profile-position mode setup")
-        mc.motion.motor_enable(servo=alias)
-        _debug_target_latch_state(mc, alias, "after motor enable")
-        pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
-        init_pos = int(mc.motion.get_actual_position(servo=alias))
-        target_pos = init_pos + pos_res
-        position_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-        logger.info(
-            "Target latch position setup: resolution=%s initial=%s target=%s tolerance=%s",
-            pos_res,
-            init_pos,
-            target_pos,
-            position_tolerance,
-        )
+    _run_target_latch_motion(servo, mc, alias)
 
-        logger.info("Target latch writing pending setpoint %s", target_pos)
-        mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
-        _debug_target_latch_state(mc, alias, "after setpoint write")
-        mc.motion.wait_for_position(init_pos, servo=alias, error=position_tolerance, timeout=1)
-        test_act_pos = mc.motion.get_actual_position(servo=alias)
-        logger.info("Target latch pending-position check: actual=%s", test_act_pos)
-        assert pytest.approx(init_pos, abs=position_tolerance) == test_act_pos
-        _debug_target_latch_state(mc, alias, "before target latch")
 
-        logger.info("Target latch triggering target %s", target_pos)
-        try:
-            mc.motion.target_latch(servo=alias)
-        except (IMTimeoutError, TypeError, exceptions.ILError):
-            _debug_target_latch_state(mc, alias, "target latch failure", detailed=True)
-            raise
-        _debug_target_latch_state(mc, alias, "after target latch")
-        try:
-            mc.motion.wait_for_position(
-                target_pos, servo=alias, error=position_tolerance, timeout=5
-            )
-        except IMTimeoutError:
-            _debug_target_latch_state(mc, alias, "target position timeout", detailed=True)
-            raise
-        test_act_pos = mc.motion.get_actual_position(servo=alias)
-        logger.info("Target latch target-position check: actual=%s", test_act_pos)
-        assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
-        _debug_target_latch_state(mc, alias, "after target position")
+@pytest.mark.canopen
+def test_target_latch_with_brake_released(
+    servo: "Servo", mc: "MotionController", alias: str
+) -> None:
+    _run_target_latch_motion(servo, mc, alias, brake_released=True)
 
 
 @pytest.mark.virtual
