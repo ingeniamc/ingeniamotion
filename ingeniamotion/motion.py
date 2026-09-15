@@ -106,6 +106,26 @@ class Motion:
             f"Target latch control bit did not {state} within {self.TARGET_LATCH_TIMEOUT_S} seconds"
         )
 
+    def clear_target_latch(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
+        """Clear the target latch bit.
+
+        Args:
+            servo: Servo alias to reference it. ``default`` by default.
+            axis: Servo axis. ``1`` by default.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        control_word = self.mc.communication.get_register(
+            self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(control_word, int):
+            raise TypeError("Control word register value has to be a integer")
+        new_control_word = control_word & (~self.CONTROL_WORD_TARGET_LATCH_BIT)
+        self.mc.communication.set_register(
+            self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
+        )
+
     def set_operation_mode(
         self,
         operation_mode: Union[OperationMode, int],
