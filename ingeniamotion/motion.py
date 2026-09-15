@@ -228,16 +228,33 @@ class Motion:
 
         """
         drive = self.mc._get_drive(servo)
+        is_motor_enabled: Optional[bool]
         try:
             is_motor_enabled = self.mc.configuration.is_motor_enabled(servo=servo, axis=axis)
         except ILError as e:
             self.logger.info(f"Unable to check if motor is enabled. Reason: {e}")
-            return
-        if is_motor_enabled:
+            is_motor_enabled = None
+        if is_motor_enabled is not False:
+            self.logger.info(
+                f"Motor disable requested. Status read: {is_motor_enabled!r}.",
+                axis=axis,
+                drive=servo,
+            )
             try:
                 drive.disable(subnode=axis)
+                self.logger.info(
+                    "Motor disable command completed.",
+                    axis=axis,
+                    drive=servo,
+                )
             except ILError as e:
                 self.logger.info(f"Unable to disable the motor. Reason: {e}")
+        else:
+            self.logger.info(
+                "Motor disable skipped because status reports the motor is disabled.",
+                axis=axis,
+                drive=servo,
+            )
 
     def fault_reset(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Fault reset.
