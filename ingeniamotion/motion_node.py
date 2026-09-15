@@ -4,6 +4,7 @@ from functools import cached_property
 from ingenialink import Network, Servo
 
 from ingeniamotion.axis import Axis
+from ingeniamotion.capture import MotionNodeCapture
 from ingeniamotion.errors import NodeErrors
 
 
@@ -67,3 +68,8 @@ class MotionNode:
             The error container, built on first access.
         """
         return NodeErrors(self)
+
+    @cached_property
+    def capture(self) -> "MotionNodeCapture":
+        """The capture operations of the motion node."""
+        return MotionNodeCapture(self)
