@@ -1,6 +1,6 @@
 from enum import IntEnum
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from ingeniamotion.capture import Capture
 from ingeniamotion.communication import Communication
@@ -26,7 +26,7 @@ class MotionController:
         # Motion Node alias -> Motion Node instance
         self.__motion_nodes: dict[str, MotionNode] = {}
         # Network Alias -> Network
-        self.__net: dict[str, Network] = {}
+        self.__net: dict[str, Any] = {}
 
         # Motion Controller Modules
         self.__config: Configuration = Configuration(self)
@@ -85,7 +85,7 @@ class MotionController:
         drive = self._get_drive(servo)
         return drive.is_alive()
 
-    def _get_network(self, servo: str) -> "Network":
+    def _get_network(self, servo: str) -> Any:
         """Return servo network instance.
 
         Args:
@@ -121,7 +121,7 @@ class MotionController:
         """Read only dict of motion nodes indexed by alias."""
         return MappingProxyType(self.__motion_nodes)
 
-    def create_motion_node(self, alias: str, servo: "Servo", network: "Network") -> MotionNode:
+    def create_motion_node(self, alias: str, servo: "Servo", network: Any) -> MotionNode:
         """Helper to create and register a motion node.
 
         Args:
@@ -204,11 +204,11 @@ class MotionController:
         return MappingProxyType({alias: node.servo for alias, node in self.motion_nodes.items()})
 
     @property
-    def net(self) -> MappingProxyType[str, "Network"]:
+    def net(self) -> MappingProxyType[str, Any]:
         """Dict of ``ingenialink.Network`` connected indexed by alias."""
         return MappingProxyType(self.__net)
 
-    def register_network(self, alias: str, network: "Network") -> None:
+    def register_network(self, alias: str, network: Any) -> None:
         """Register a network instance with an alias.
 
         Args:
@@ -218,7 +218,7 @@ class MotionController:
         """
         self.__net[alias] = network
 
-    def remove_network(self, network: "Network") -> None:
+    def remove_network(self, network: Any) -> None:
         """Remove a network instance from the registry."""
         for alias in [alias for alias, net in self.__net.items() if net == network]:
             del self.__net[alias]
