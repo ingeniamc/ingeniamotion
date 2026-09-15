@@ -41,6 +41,8 @@ CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
 ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
 VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
+PROFILE_POSITION_LATCH_MODE = 0x40
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,26 @@ TARGET_LATCH_DEBUG_REGISTERS = (
     ACTUAL_POSITION_REGISTER,
     ACTUAL_VELOCITY_REGISTER,
 )
+TARGET_LATCH_DIAGNOSTIC_REGISTERS = (
+    "DRV_DIAG_ERROR_LAST",
+    "DRV_DIAG_ERROR_TOTAL",
+    CURRENT_QUADRATURE_SET_POINT_REGISTER,
+    ACTUAL_QUADRATURE_CURRENT_REGISTER,
+    "CL_CUR_Q_ERROR_FOLLOWING",
+    "CL_POS_ERROR_FOLLOWING",
+    "SET_POINT_SRC",
+    "CL_POS_REF_MIN",
+    "CL_POS_REF_MAX",
+    "CL_POS_REF_MIN_RANGE",
+    "CL_POS_REF_MAX_RANGE",
+    "PROF_POS_OPTION_CODE",
+    "IO_IN_QS",
+    "ERROR_STATE_QS_OPTION",
+    "IO_IN_HALT",
+    "ERROR_STATE_HALT_OPTION",
+    "DRV_PROT_STO_STATUS",
+    "CIA301_COMMS_ERROR_FIELD",
+)
 
 
 def _get_debug_target_latch_register(mc: "MotionController", alias: str, register: str):
@@ -63,12 +85,17 @@ def _get_debug_target_latch_register(mc: "MotionController", alias: str, registe
         return f"{type(error).__name__}: {error}"
 
 
-def _debug_target_latch_state(mc: "MotionController", alias: str, label: str) -> None:
+def _debug_target_latch_state(
+    mc: "MotionController", alias: str, label: str, detailed: bool = False
+) -> None:
     if not logger.isEnabledFor(logging.INFO):
         return
 
     state = {}
-    for register in TARGET_LATCH_DEBUG_REGISTERS:
+    registers = TARGET_LATCH_DEBUG_REGISTERS
+    if detailed:
+        registers += TARGET_LATCH_DIAGNOSTIC_REGISTERS
+    for register in registers:
         state[register] = _get_debug_target_latch_register(mc, alias, register)
     logger.info("Target latch %s: %s", label, state)
 
@@ -99,7 +126,11 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> None:
     with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
         _debug_target_latch_state(mc, alias, "before setup")
-        mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
+        mc.communication.set_register(
+            PROFILER_LATCHING_MODE_REGISTER,
+            PROFILE_POSITION_LATCH_MODE,
+            servo=alias,
+        )
         _debug_target_latch_state(mc, alias, "after latch mode setup")
         mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
         _debug_target_latch_state(mc, alias, "after profile-position mode setup")
@@ -127,9 +158,19 @@ def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> Non
         _debug_target_latch_state(mc, alias, "before target latch")
 
         logger.info("Target latch triggering target %s", target_pos)
-        mc.motion.target_latch(servo=alias)
+        try:
+            mc.motion.target_latch(servo=alias)
+        except (IMTimeoutError, TypeError, exceptions.ILError):
+            _debug_target_latch_state(mc, alias, "target latch failure", detailed=True)
+            raise
         _debug_target_latch_state(mc, alias, "after target latch")
-        mc.motion.wait_for_position(target_pos, servo=alias, error=position_tolerance, timeout=5)
+        try:
+            mc.motion.wait_for_position(
+                target_pos, servo=alias, error=position_tolerance, timeout=5
+            )
+        except IMTimeoutError:
+            _debug_target_latch_state(mc, alias, "target position timeout", detailed=True)
+            raise
         test_act_pos = mc.motion.get_actual_position(servo=alias)
         logger.info("Target latch target-position check: actual=%s", test_act_pos)
         assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
