@@ -11,7 +11,7 @@ from ingenialink import Servo
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.configuration.config_checker import ConfigChecker
+from summit_testing_framework.configuration.layered_config import LayeredConfig
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
     MarkerHelper,
@@ -81,7 +81,7 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
-def __config_uses_biss_c(config_file: Path) -> bool:
+def __config_uses_biss_c(config_file: "Path") -> bool:
     """Checks if the configuration file uses BISS-C protocol.
 
     Args:
@@ -90,20 +90,26 @@ def __config_uses_biss_c(config_file: Path) -> bool:
     Returns:
         bool: True if the configuration file uses BISS-C protocol, False otherwise.
     """
-    config_checker: ConfigChecker = ConfigChecker(config_file=config_file)
+    layered_config: LayeredConfig = LayeredConfig.from_xcf(config_file)
+
+    def register_has_expected_value(register: str, expected_value: int) -> bool:
+        check_result = layered_config.check_reg(register, expected_value)
+        if check_result is None:
+            return False
+        return check_result[0]
 
     # Check if Primary Absolute Slave 1 (=1) or Secondary Absolute Slave 1 (=7)
     # are selected in some of the possible feedback sensors registers:
     # CL_VEL_FBK_SENSOR, CL_POS_FBK_SENSOR, COMMU_ANGLE_SENSOR
     # If they are, then check if the corresponding encoder protocol is BISS-C (=0)
     for register in ["CL_VEL_FBK_SENSOR", "CL_POS_FBK_SENSOR", "COMMU_ANGLE_SENSOR"]:
-        if config_checker.register_has_expected_value(
-            register, 1
-        ) and config_checker.register_has_expected_value("FBK_BISS1_SSI1_PROTOCOL", 0):
+        is_primary_abs_slave_selected = register_has_expected_value(register, 1)
+        is_primary_biss_c_protocol = register_has_expected_value("FBK_BISS1_SSI1_PROTOCOL", 0)
+        if is_primary_abs_slave_selected and is_primary_biss_c_protocol:
             return True
-        if config_checker.register_has_expected_value(
-            register, 7
-        ) and config_checker.register_has_expected_value("FBK_SSI2_PROTOCOL", 0):
+        is_secondary_abs_slave_selected = register_has_expected_value(register, 7)
+        is_secondary_biss_c_protocol = register_has_expected_value("FBK_SSI2_PROTOCOL", 0)
+        if is_secondary_abs_slave_selected and is_secondary_biss_c_protocol:
             return True
 
     return False
