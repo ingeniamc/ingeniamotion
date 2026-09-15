@@ -10,7 +10,7 @@ import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import OperationMode
-from ingeniamotion.exceptions import IMTimeoutError
+from ingeniamotion.exceptions import IMRegisterNotExistError, IMTimeoutError
 from ingeniamotion.motion import Motion
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
@@ -81,7 +81,7 @@ TARGET_LATCH_DIAGNOSTIC_REGISTERS = (
 def _get_debug_target_latch_register(mc: "MotionController", alias: str, register: str):
     try:
         return mc.communication.get_register(register, servo=alias)
-    except exceptions.ILError as error:
+    except (IMRegisterNotExistError, exceptions.ILError) as error:
         return f"{type(error).__name__}: {error}"
 
 
