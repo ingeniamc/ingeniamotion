@@ -73,6 +73,20 @@ def test_target_latch(mc, alias):
 
 
 @pytest.mark.virtual
+def test_clear_target_latch(mocker, mc, alias):
+    control_word = Motion.CONTROL_WORD_TARGET_LATCH_BIT | 0x01
+    get_register = mocker.patch.object(
+        mc.communication, "get_register", return_value=control_word
+    )
+    set_register = mocker.patch.object(mc.communication, "set_register")
+
+    mc.motion.clear_target_latch(servo=alias)
+
+    get_register.assert_called_once_with(Motion.CONTROL_WORD_REGISTER, servo=alias, axis=1)
+    set_register.assert_called_once_with(Motion.CONTROL_WORD_REGISTER, 0x01, servo=alias, axis=1)
+
+
+@pytest.mark.virtual
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(mc, alias, operation_mode):
     mc.motion.set_operation_mode(operation_mode, servo=alias)
