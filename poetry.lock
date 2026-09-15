@@ -1016,7 +1016,7 @@ files = [
     {file = "exceptiongroup-1.3.1-py3-none-any.whl", hash = "sha256:a7a39a3bd276781e98394987d3a5701d0c4edffb633bb7a5144577f82c773598"},
     {file = "exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219"},
 ]
-markers = {dev = "python_version < \"3.12\"", tests = "python_version < \"3.12\""}
+markers = {dev = "python_version < \"3.12\""}
 
 [package.dependencies]
 typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.13\""}
@@ -4405,16 +4405,17 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.3.1.post453+pr.123.b4"
+version = "0.3.1.post464+pr.123.b7"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.3.1.post453+pr.123.b4-py3-none-any.whl", hash = "sha256:ca9aa1198775523e6c52f66a59d53a9e1736153001b7dec19d53808d5c678a23"},
+    {file = "summit_testing_framework-0.3.1.post464+pr.123.b7-py3-none-any.whl", hash = "sha256:69d8390a99732db928d738c3f4ae73f17358b78ec710a356a1f094851ff8e315"},
 ]
 
 [package.dependencies]
+exceptiongroup = ">=1.3.1,<2.0.0"
 ingenia-att-api = "2.3.1"
 ingenialogger = ">=0.2.1"
 jinja2 = ">=3.1.0"
@@ -4987,4 +4988,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "75746a6b7386ffc7931746ab9c21434cec0d676a6da9783b37f9fc28628c87c7"
+content-hash = "7b3c2c902f2294fe13959c59b66c71ee80b02b4f267fafab068a60f799ba411f"
