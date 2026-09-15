@@ -240,6 +240,82 @@ def test_target_latch_with_brake_released(
     _run_target_latch_motion(servo, mc, alias, brake_released=True)
 
 
+@pytest.mark.canopen
+def test_profile_position_move_with_brake_released(
+    servo: "Servo", mc: "MotionController", alias: str
+) -> None:
+    try:
+        mc.configuration.release_brake(servo=alias)
+        assert (
+            mc.communication.get_register(
+                mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                servo=alias,
+                axis=1,
+            )
+            == mc.configuration.BrakeOverride.RELEASE_BRAKE
+        )
+
+        with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+            mc.communication.set_register(
+                PROFILER_LATCHING_MODE_REGISTER,
+                0,
+                servo=alias,
+            )
+            assert (
+                mc.communication.get_register(
+                    PROFILER_LATCHING_MODE_REGISTER,
+                    servo=alias,
+                    axis=1,
+                )
+                == 0
+            )
+            mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+            mc.motion.motor_enable(servo=alias)
+
+            position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+            initial_position = int(mc.motion.get_actual_position(servo=alias))
+            target_position = initial_position + position_resolution
+            position_tolerance = position_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+            logger.info(
+                "Direct profile-position move setup: resolution=%s initial=%s target=%s "
+                "tolerance=%s",
+                position_resolution,
+                initial_position,
+                target_position,
+                position_tolerance,
+            )
+            _debug_target_latch_state(mc, alias, "before direct profile-position move")
+
+            try:
+                mc.motion.move_to_position(
+                    target_position,
+                    servo=alias,
+                    target_latch=False,
+                    blocking=True,
+                    error=position_tolerance,
+                    timeout=5,
+                )
+            except IMTimeoutError:
+                _debug_target_latch_state(
+                    mc, alias, "direct profile-position move timeout", detailed=True
+                )
+                raise
+
+            actual_position = mc.motion.get_actual_position(servo=alias)
+            logger.info("Direct profile-position move result: actual=%s", actual_position)
+            assert pytest.approx(target_position, abs=position_tolerance) == actual_position
+    finally:
+        mc.configuration.default_brake(servo=alias)
+        assert (
+            mc.communication.get_register(
+                mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                servo=alias,
+                axis=1,
+            )
+            == mc.configuration.BrakeOverride.OVERRIDE_DISABLED
+        )
+
+
 @pytest.mark.virtual
 def test_target_latch_verifies_control_word_edge(mocker):
     communication = SimpleNamespace(
