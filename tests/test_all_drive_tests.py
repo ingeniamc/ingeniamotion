@@ -330,10 +330,7 @@ def test_secondary_ssi_test(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-774",
-)
+@pytest.mark.repeat(100)
 def test_commutation(
     servo: Servo,
     alias: str,
