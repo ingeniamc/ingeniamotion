@@ -167,6 +167,7 @@ def test_homing_on_current_position(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+@pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit(
     servo: "Servo", mc: "MotionController", alias: str, direction: int
