@@ -90,6 +90,15 @@ def _log_commutation_diagnostics(mc, alias: str, repeat: str, phase: str) -> Non
     )
 
 
+def _assert_commutation_starts_without_active_fault(mc, alias: str, repeat: str) -> None:
+    if mc.errors.is_fault_active(servo=alias, axis=1):
+        _log_commutation_diagnostics(mc, alias, repeat, "active fault before commutation")
+        pytest.fail(
+            "Commutation attempt started with an active drive fault. "
+            "The previous test teardown did not leave the drive ready for the next attempt."
+        )
+
+
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
@@ -408,6 +417,7 @@ def test_commutation(
                 _log_commutation_diagnostics(mc, alias, repeat, "after teardown fault reset")
 
     monkeypatch.setattr(mc.motion, "fault_reset", fault_reset_with_diagnostics)
+    _assert_commutation_starts_without_active_fault(mc, alias, repeat)
     if diagnostic_repeat:
         _log_commutation_diagnostics(mc, alias, repeat, "before commutation")
 
