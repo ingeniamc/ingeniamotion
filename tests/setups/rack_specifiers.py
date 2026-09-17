@@ -215,8 +215,8 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.9.0": VersionConfig.from_version(
-                version="2.9.0",
+            "2.11.0": VersionConfig.from_version(
+                version="2.11.0",
                 config_file=LayeredConfig.from_xcf(
                     config_files.CAP_XCR_E_2_9_0_CONFIG
                 ).assert_feedbacks({
