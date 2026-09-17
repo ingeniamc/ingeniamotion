@@ -1,5 +1,6 @@
 import sys
 import time
+from collections.abc import Generator
 from typing import TYPE_CHECKING, Optional
 
 import pytest
@@ -101,17 +102,23 @@ def _wait_for_homing_stop(mc: "MotionController", alias: str, timeout_s: float) 
 
 
 @pytest.fixture
-def initial_position(mc: "MotionController", alias: str) -> int:
-    mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    position = position_resolution // 2
-
+def initial_position(mc: "MotionController", alias: str) -> Generator[int, None, None]:
     try:
-        mc.motion.motor_enable(servo=alias)
-        mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+        mc.configuration.release_brake(servo=alias)
+        mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+        position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+        position = position_resolution // 2
+        try:
+            mc.motion.motor_enable(servo=alias)
+            mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+        finally:
+            _cleanup_homing_motion(mc, alias)
+        yield position
     finally:
-        _cleanup_homing_motion(mc, alias)
-    return position
+        try:
+            _cleanup_homing_motion(mc, alias)
+        finally:
+            mc.configuration.default_brake(servo=alias)
 
 
 @pytest.mark.virtual

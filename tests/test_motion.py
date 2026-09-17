@@ -230,7 +230,7 @@ def _run_target_latch_motion(
 @pytest.mark.canopen
 @pytest.mark.repeat(100)
 def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> None:
-    _run_target_latch_motion(servo, mc, alias)
+    _run_target_latch_motion(servo, mc, alias, brake_released=True)
 
 
 @pytest.mark.canopen
