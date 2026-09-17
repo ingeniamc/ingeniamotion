@@ -4,6 +4,11 @@ from summit_testing_framework.configuration.encoder_configurator import (
     EncoderProtocol,
 )
 from summit_testing_framework.configuration.feedback_configuration import FeedbackConfiguration
+from summit_testing_framework.configuration.feedback_constants import (
+    FeedbackSelectorRegisters,
+    FeedbackSensorType,
+)
+from summit_testing_framework.configuration.layered_config import LayeredConfig
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
 from summit_testing_framework.setups.specifiers import (
@@ -28,7 +33,15 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=config_files.EVE_XCR_C_2_1_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -43,7 +56,15 @@ ETH_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=config_files.EVE_XCR_C_2_8_1_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_8_1_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -64,7 +85,15 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     # Disabled pending INGK-982
@@ -80,7 +109,15 @@ ETH_SETUP = SpecifierContainer({
             ),
             "2.10.0": VersionConfig.from_version(
                 version="2.10.0",
-                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     # Disabled pending INGK-982
@@ -105,7 +142,15 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_E_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -120,7 +165,15 @@ ECAT_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_E_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -141,7 +194,15 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=config_files.CAP_XCR_E_2_2_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_E_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -156,7 +217,15 @@ ECAT_SETUP = SpecifierContainer({
             ),
             "2.9.0": VersionConfig.from_version(
                 version="2.9.0",
-                config_file=config_files.CAP_XCR_E_2_9_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_E_2_9_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -220,7 +289,15 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=config_files.EVE_XCR_C_2_1_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -235,7 +312,15 @@ CAN_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=config_files.EVE_XCR_C_2_8_1_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_8_1_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -257,7 +342,15 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -273,7 +366,15 @@ CAN_SETUP = SpecifierContainer({
             ),
             "2.10.0": VersionConfig.from_version(
                 version="2.10.0",
-                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "never",
@@ -322,7 +423,15 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         "2.11.0": VersionConfig.from_version(
             version="2.11.0",
             dictionary_type=DictionaryType.XDF_V3,
-            config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
+            config_file=LayeredConfig.from_xcf(
+                config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG
+            ).assert_feedbacks({
+                FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+            }),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
@@ -342,7 +451,15 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         "2.10.0": VersionConfig.from_version(
             version="2.10.0",
             dictionary_type=DictionaryType.XDF_V3,
-            config_file=config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG,
+            config_file=LayeredConfig.from_xcf(
+                config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG
+            ).assert_feedbacks({
+                FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+            }),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
