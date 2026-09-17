@@ -215,8 +215,8 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.9.0": VersionConfig.from_version(
-                version="2.9.0",
+            "2.11.0": VersionConfig.from_version(
+                version="2.11.0",
                 config_file=LayeredConfig.from_xcf(
                     config_files.CAP_XCR_E_2_9_0_CONFIG
                 ).assert_feedbacks({
@@ -399,7 +399,7 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
             identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
+            identifier=PartNumber.CAP_XCR_E, version="2.11.0"
         ),
     ],
     extra_data={
