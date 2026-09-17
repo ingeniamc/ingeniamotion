@@ -680,6 +680,7 @@ def test_current_ramp_up(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.ethernet
+# Replace it with https://novantamotion.atlassian.net/browse/CIT-812
 @pytest.mark.not_valid_for_specifier(
     specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
     skip_reason=(
