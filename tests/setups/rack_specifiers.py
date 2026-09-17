@@ -399,7 +399,7 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
             identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
+            identifier=PartNumber.CAP_XCR_E, version="2.11.0"
         ),
     ],
     extra_data={
