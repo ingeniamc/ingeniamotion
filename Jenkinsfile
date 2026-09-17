@@ -307,6 +307,7 @@ pipeline {
                         docker {
                             label 'lin-worker'
                             image LIN_DOCKER_IMAGE
+                            args '-u root:root --memory=1500m --memory-swap=1500m --cpus=0.75 --pids-limit=1024'
                         }
                     }
                     environment {
