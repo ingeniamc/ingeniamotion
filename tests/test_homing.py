@@ -371,10 +371,9 @@ def test_current_position_homing_restores_operation_mode_on_failure(mocker: "Moc
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-@pytest.mark.not_valid_version_for_product(
+@pytest.mark.valid_versions_for_product(
     part_number="EVE-*",
-    min="2.7.0",
-    max="2.8.1",
+    min="2.9.0",
     skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-493 (fixed in 2.9.0)",
 )
 def test_homing_on_index_pulse(
