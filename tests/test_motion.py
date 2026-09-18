@@ -114,6 +114,37 @@ def _get_debug_target_latch_error_history(mc: "MotionController", alias: str):
         return f"{type(error).__name__}: {error}"
 
 
+def _cleanup_target_latch_motion(mc: "MotionController", alias: str, restore_brake: bool) -> None:
+    original_exception = sys.exc_info()[1]
+    cleanup_error: Optional[Exception] = None
+    try:
+        mc.motion.motor_disable(servo=alias)
+    except Exception as error:
+        cleanup_error = error
+    try:
+        mc.motion.clear_target_latch(servo=alias)
+    except Exception as error:
+        if cleanup_error is None:
+            cleanup_error = error
+    if restore_brake:
+        try:
+            mc.configuration.default_brake(servo=alias)
+            brake_override = mc.communication.get_register(
+                mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                servo=alias,
+                axis=1,
+            )
+            if brake_override != mc.configuration.BrakeOverride.OVERRIDE_DISABLED:
+                raise AssertionError(
+                    f"Brake override was not disabled after cleanup: {brake_override}"
+                )
+        except Exception as error:
+            if cleanup_error is None:
+                cleanup_error = error
+    if original_exception is None and cleanup_error is not None:
+        raise cleanup_error
+
+
 def _debug_target_latch_state(
     mc: "MotionController", alias: str, label: str, detailed: bool = False
 ) -> None:
@@ -221,8 +252,7 @@ def _run_target_latch_motion(
             assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
             _debug_target_latch_state(mc, alias, "after target position")
     finally:
-        if brake_released:
-            mc.configuration.default_brake(servo=alias)
+        _cleanup_target_latch_motion(mc, alias, restore_brake=brake_released)
 
 
 @pytest.mark.ethernet
@@ -305,15 +335,7 @@ def test_profile_position_move_with_brake_released(
             logger.info("Direct profile-position move result: actual=%s", actual_position)
             assert pytest.approx(target_position, abs=position_tolerance) == actual_position
     finally:
-        mc.configuration.default_brake(servo=alias)
-        assert (
-            mc.communication.get_register(
-                mc.configuration.BRAKE_OVERRIDE_REGISTER,
-                servo=alias,
-                axis=1,
-            )
-            == mc.configuration.BrakeOverride.OVERRIDE_DISABLED
-        )
+        _cleanup_target_latch_motion(mc, alias, restore_brake=True)
 
 
 @pytest.mark.virtual
