@@ -20,12 +20,12 @@ classifiers = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "ingenialink>=7.6.2",
+    "ingenialink==7.6.2.post393+pr.924.b4",
     "ingenialogger>=0.2.1",
     "ifaddr==0.2.0",
     "exceptiongroup>=1.3.0, <2.0.0",
     "numpy>=2.0,<2.1",
-    "virtual_drive>=0.1.0"
+    "virtual_drive==0.1.1.post328+pr.128.b1"
 ]
 
 [project.urls]
@@ -120,9 +120,9 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 pytest-subtests = "==0.15.0"
 matplotlib = "==3.9.4"
-summit-testing-framework = {version = "0.3.1.post496+pr.130.b1"}
-ingenialink = {version = "7.6.2.post382+develop.0d3aac0"}
-virtual_drive = {version = "0.1.1.post261+develop.7854ff4"}
+summit-testing-framework = {version = "0.3.1.post617+pr.126.b68"}
+ingenialink = {version = "7.6.2.post393+pr.924.b4"}
+virtual_drive = {version = "0.1.1.post328+pr.128.b1"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS
