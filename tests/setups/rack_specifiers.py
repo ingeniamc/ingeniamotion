@@ -233,8 +233,8 @@ ECAT_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.9.0",
-                            stage_name="EtherCAT Capitan - FW. 2.9.0",
+                            run_test_stage_uid="ethercat_capitan_2.11.0",
+                            stage_name="EtherCAT Capitan - FW. 2.11.0",
                         )
                     },
                 },

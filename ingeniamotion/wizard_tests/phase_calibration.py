@@ -39,6 +39,7 @@ class Phasing(BaseTest[ReportBase]):
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
     COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
     COMMUTATION_ANGLE_REF_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
+    HALL_OFFSET_COMPENSATION_VALUE_REGISTER = "FBK_DIGHALL_OFFSET_COMP_VALUE"
 
     # Left changed on purpose: drive-computed calibration results (angle offsets) and the
     # phasing config the test applies. They are not rolled back, so restore checks accept them.
@@ -47,6 +48,7 @@ class Phasing(BaseTest[ReportBase]):
         COMMUTATION_ANGLE_REF_OFFSET_REGISTER,
         MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
         PHASING_TIMEOUT_REGISTER,
+        HALL_OFFSET_COMPENSATION_VALUE_REGISTER,
     )
 
     class ResultType(IntEnum):
