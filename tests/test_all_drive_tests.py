@@ -37,62 +37,9 @@ from tests.conftest import refresh_registers_for_test_rollback
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 
-logger = logging.getLogger(__name__)
 
-COMMUTATION_DIAGNOSTIC_REGISTERS = (
-    "DRV_STATE_STATUS",
-    "DRV_PROT_STO_STATUS",
-    "COMMU_ANGLE_OFFSET",
-    "COMMU_ANGLE_REF_OFFSET",
-    "COMMU_PHASING_MODE",
-    "COMMU_PHASING_MAX_CURRENT",
-    "COMMU_PHASING_TIMEOUT",
-    "COMMU_PHASING_ACCURACY",
-)
-
-
-def _read_commutation_register(mc, alias: str, register: str):
-    try:
-        return mc.communication.get_register(register, servo=alias, axis=1)
-    except Exception as error:
-        return f"{type(error).__name__}: {error}"
-
-
-def _log_commutation_diagnostics(mc, alias: str, repeat: str, phase: str) -> None:
-    register_values = {}
-    for register in COMMUTATION_DIAGNOSTIC_REGISTERS:
-        register_values[register] = _read_commutation_register(mc, alias, register)
-
-    try:
-        last_buffer_error = mc.errors.get_last_buffer_error(servo=alias, axis=1)
-        error_values = {
-            "last_buffer_error": last_buffer_error,
-            "last_error": mc.errors.get_last_error(servo=alias, axis=1),
-            "total_errors": mc.errors.get_number_total_errors(servo=alias, axis=1),
-            "fault_active": mc.errors.is_fault_active(servo=alias, axis=1),
-        }
-        if last_buffer_error[0] != 0:
-            try:
-                error_values["last_buffer_error_description"] = mc.errors.get_error_data(
-                    last_buffer_error[0], servo=alias
-                )[3]
-            except Exception as error:
-                error_values["last_buffer_error_description"] = f"{type(error).__name__}: {error}"
-    except Exception as error:
-        error_values = f"{type(error).__name__}: {error}"
-
-    logger.info(
-        "Commutation diagnostics repeat=%s phase=%s registers=%s errors=%s",
-        repeat,
-        phase,
-        register_values,
-        error_values,
-    )
-
-
-def _assert_commutation_starts_without_active_fault(mc, alias: str, repeat: str) -> None:
+def _assert_commutation_starts_without_active_fault(mc, alias: str) -> None:
     if mc.errors.is_fault_active(servo=alias, axis=1):
-        _log_commutation_diagnostics(mc, alias, repeat, "active fault before commutation")
         pytest.fail(
             "Commutation attempt started with an active drive fault. "
             "The previous test teardown did not leave the drive ready for the next attempt."
@@ -396,60 +343,28 @@ def test_secondary_ssi_test(
 def test_commutation(
     servo: Servo,
     alias: str,
-    monkeypatch,
     mc: "MotionController",
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
-    request: pytest.FixtureRequest,
 ) -> None:
-    repeat = str(request.getfixturevalue("__pytest_repeat_step_number") + 1)
-    diagnostic_repeat = int(repeat) <= 3
-    attempt_failed = False
-    original_fault_reset = mc.motion.fault_reset
+    _assert_commutation_starts_without_active_fault(mc, alias)
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
+            "COMMU_PHASING_MAX_CURRENT",
+        ],
+    ):
+        results = mc.tests.commutation(servo=alias)
+        assert results["result_severity"] == SeverityLevel.SUCCESS
 
-    def fault_reset_with_diagnostics(*args, **kwargs):
-        if diagnostic_repeat or attempt_failed:
-            _log_commutation_diagnostics(mc, alias, repeat, "before teardown fault reset")
-        try:
-            return original_fault_reset(*args, **kwargs)
-        finally:
-            if diagnostic_repeat or attempt_failed:
-                _log_commutation_diagnostics(mc, alias, repeat, "after teardown fault reset")
-
-    monkeypatch.setattr(mc.motion, "fault_reset", fault_reset_with_diagnostics)
-    _assert_commutation_starts_without_active_fault(mc, alias, repeat)
-    if diagnostic_repeat:
-        _log_commutation_diagnostics(mc, alias, repeat, "before commutation")
-
-    try:
-        with refresh_registers_for_test_rollback(
-            servo,
-            [
-                "COMMU_ANGLE_OFFSET",
-                "COMMU_ANGLE_REF_OFFSET",
-                "COMMU_PHASING_MAX_CURRENT",
-            ],
-        ):
-            try:
-                results = mc.tests.commutation(servo=alias)
-            except Exception:
-                attempt_failed = True
-                _log_commutation_diagnostics(mc, alias, repeat, "after commutation exception")
-                raise
-            if results["result_severity"] != SeverityLevel.SUCCESS:
-                attempt_failed = True
-                _log_commutation_diagnostics(mc, alias, repeat, "after commutation failure")
-            assert results["result_severity"] == SeverityLevel.SUCCESS
-
-        assert_returns_to_initial_value(
-            servo,
-            registers_baseline,
-            accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS,
-            do_not_restore_registers=do_not_restore_registers,
-        )
-    except Exception:
-        attempt_failed = True
-        raise
+    assert_returns_to_initial_value(
+        servo,
+        registers_baseline,
+        accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS,
+        do_not_restore_registers=do_not_restore_registers,
+    )
 
 
 @pytest.mark.ethernet
