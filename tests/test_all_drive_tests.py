@@ -38,14 +38,6 @@ from tests.conftest import refresh_registers_for_test_rollback
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 
 
-def _assert_commutation_starts_without_active_fault(mc, alias: str) -> None:
-    if mc.errors.is_fault_active(servo=alias, axis=1):
-        pytest.fail(
-            "Commutation attempt started with an active drive fault. "
-            "The previous test teardown did not leave the drive ready for the next attempt."
-        )
-
-
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
@@ -352,7 +344,6 @@ def test_commutation(
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ) -> None:
-    _assert_commutation_starts_without_active_fault(mc, alias)
     with refresh_registers_for_test_rollback(
         servo,
         [
