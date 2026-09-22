@@ -339,7 +339,12 @@ def test_secondary_ssi_test(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.repeat(100)
+@pytest.mark.not_valid_version_for_product(
+    part_number="CAP-*",
+    min="2.6.0",
+    max="2.10.0",
+    skip_reason="Flaky test for BISS-C configuration",
+)
 def test_commutation(
     servo: Servo,
     alias: str,
