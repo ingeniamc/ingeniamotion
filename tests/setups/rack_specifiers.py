@@ -226,7 +226,7 @@ ECAT_SETUP = SpecifierContainer({
                     FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                     FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
                 }),
-                dictionary_type=DictionaryType.XDF_V2,
+                dictionary_type=DictionaryType.XDF_V3,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
                     RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
