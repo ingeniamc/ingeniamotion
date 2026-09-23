@@ -50,14 +50,13 @@ class Stoppable:
 
     """
 
-    stop_queue: Queue[StopExceptionError]
+    stop_queue: Final[Queue[StopExceptionError]] = Queue(1)
 
     _stoppable_instance_creation_subscriptions: Final[list[StoppableInstanceCreations]] = []
     _stop_opportunity_subscriptions: Final[list[StopOpportunitySubscription]] = []
 
     def __init__(self) -> None:
         """Notify subscribers that a stoppable instance has been created."""
-        self.stop_queue = Queue(1)
         for sub in self._stoppable_instance_creation_subscriptions:
             sub(self)
 

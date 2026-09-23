@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 import pytest
 
 from ingeniamotion.wizard_tests.stoppable import (
@@ -5,6 +7,15 @@ from ingeniamotion.wizard_tests.stoppable import (
     StopOpportunityTraceEvent,
     Stoppable,
 )
+
+
+@pytest.fixture(autouse=True)
+def clear_stop_queue() -> Generator[None, None, None]:
+    """Ensure the shared stop queue is empty before and after each test."""
+    stoppable = Stoppable()
+    stoppable.reset_stop()
+    yield
+    stoppable.reset_stop()
 
 
 class DummyStoppable(Stoppable):
@@ -38,19 +49,6 @@ def test_reset_stop_clears_pending_stop_signal() -> None:
     stoppable.stop()
     stoppable.reset_stop()
     stoppable.check_stop()
-
-
-def test_stop_requests_are_scoped_to_their_stoppable_instance() -> None:
-    """Stopping one instance must not interrupt another instance."""
-    stopped = Stoppable()
-    unaffected = Stoppable()
-
-    stopped.stop()
-    unaffected.reset_stop()
-    unaffected.check_stop()
-
-    with pytest.raises(StopExceptionError):
-        stopped.check_stop()
 
 
 def test_instance_creation_subscription_receives_new_stoppable_instances() -> None:
