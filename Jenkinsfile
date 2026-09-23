@@ -296,7 +296,7 @@ pipeline {
                                     steps {
                                         script {
                                             venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run('poetry run pytest -s -vv --count=100 --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_current_ramp_up and ABS1 and RATED_CURRENT"')
+                                                venv.run('poetry run pytest -s -vv --setup-show --log-cli-level=INFO -o faulthandler_timeout=30 --count=100 --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_current_ramp_up and ABS1 and RATED_CURRENT"')
                                             }
                                         }
                                     }
