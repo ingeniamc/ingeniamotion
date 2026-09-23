@@ -299,7 +299,7 @@ pipeline {
                                     steps {
                                         script {
                                             venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run('poetry run pytest -s -vv --setup-show --log-cli-level=INFO -o faulthandler_timeout=30 --count=1000 --repeat-scope=session --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k test_phasing_check_stop')
+                                                venv.run('poetry run pytest -s -vv --setup-show --log-cli-level=INFO -o faulthandler_timeout=30 -W error::pytest.PytestUnhandledThreadExceptionWarning --count=1000 --repeat-scope=session --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k test_phasing_check_stop')
                                             }
                                         }
                                     }
