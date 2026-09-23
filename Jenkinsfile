@@ -292,11 +292,18 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Run phasing check and ramp 10 times') {
+                                stage('Run forced diagnostic and phasing/ramp 50 times') {
+                                    options {
+                                        timeout(time: 45, unit: 'MINUTES')
+                                    }
+                                    environment {
+                                        INGENIAMOTION_FORCE_STALE_STOP = '1'
+                                    }
                                     steps {
                                         script {
                                             venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run('poetry run pytest -s -vv --setup-show --log-cli-level=INFO -o faulthandler_timeout=30 --count=10 --repeat-scope=session --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_phasing_check_stop or (test_current_ramp_up and ABS1 and RATED_CURRENT)"')
+                                                venv.run('poetry run pytest -s -vv --setup-show --log-cli-level=INFO -o faulthandler_timeout=30 --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_forced_stale_stop_diagnostic"')
+                                                venv.run('poetry run pytest -s -vv --setup-show --log-cli-level=INFO -o faulthandler_timeout=30 --count=50 --repeat-scope=session --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_phasing_check_stop or (test_current_ramp_up and ABS1 and RATED_CURRENT)"')
                                             }
                                         }
                                     }
