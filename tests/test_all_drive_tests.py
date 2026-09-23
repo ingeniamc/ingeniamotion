@@ -1,5 +1,4 @@
 import logging
-import os
 import random
 import time
 from collections.abc import Collection
@@ -33,7 +32,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from ingeniamotion.wizard_tests.stoppable import StopExceptionError
+from ingeniamotion.wizard_tests.stoppable import Stoppable
 from tests.conftest import refresh_registers_for_test_rollback
 
 # Record stop opportunities for every wizard-test integration case in this module.
@@ -529,22 +528,50 @@ def test_brake_test(
 
 
 def run_test_and_stop(test):
-    test_thread = Thread(target=test.run)
+    thread_errors = []
+
+    def run_test():
+        try:
+            test.run()
+        except BaseException as error:
+            thread_errors.append(error)
+
+    test_thread = Thread(target=run_test)
     test_thread.start()
     time.sleep(2)
+    worker_alive = test_thread.is_alive()
     logging.getLogger(__name__).info(
         "Requesting stop for %s; worker_alive=%s",
         type(test).__name__,
-        test_thread.is_alive(),
+        worker_alive,
     )
-    test.stop()
+    if worker_alive:
+        test.stop()
     test_thread.join()
+    pending_stop = test.stop_queue.qsize()
+    test.reset_stop()
     logging.getLogger(__name__).info(
         "Stop request finished for %s; worker_alive=%s pending_stop=%s",
         type(test).__name__,
         test_thread.is_alive(),
-        test.stop_queue.qsize(),
+        pending_stop,
     )
+    if thread_errors:
+        raise thread_errors[0]
+
+
+def test_run_test_and_stop_propagates_worker_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FailingTest(Stoppable):
+        def run(self) -> None:
+            raise RuntimeError("worker failed")
+
+    monkeypatch.setattr(time, "sleep", lambda _timeout: None)
+    test = FailingTest()
+
+    with pytest.raises(RuntimeError, match="worker failed"):
+        run_test_and_stop(test)
+
+    assert test.stop_queue.empty()
 
 
 @pytest.mark.ethernet
@@ -611,30 +638,6 @@ def test_phasing_check_stop(
     assert_returns_to_initial_value(
         servo, registers_baseline, do_not_restore_registers=do_not_restore_registers
     )
-
-
-@pytest.mark.virtual
-@pytest.mark.skipif(
-    os.getenv("INGENIAMOTION_FORCE_STALE_STOP") != "1",
-    reason="Diagnostic test is enabled only by the focused Jenkins job",
-)
-def test_forced_stale_stop_diagnostic(
-    mc: "MotionController", alias: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    previous_test = PhasingCheck(mc, alias, 1)
-    ramp_test = AbsoluteEncoder1Test(mc, alias, 1)
-    monkeypatch.setattr(previous_test, "run", lambda: None)
-
-    try:
-        run_test_and_stop(previous_test)
-        with pytest.raises(StopExceptionError):
-            ramp_test.current_ramp_up()
-        logging.getLogger(__name__).warning(
-            "DIAGNOSTIC CONFIRMED: a stop queued by one test instance interrupted "
-            "current_ramp_up on another instance"
-        )
-    finally:
-        previous_test.reset_stop()
 
 
 class TestCurrents(Enum):
