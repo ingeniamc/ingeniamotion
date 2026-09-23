@@ -192,10 +192,6 @@ def test_incremental_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-784",
-)
 def test_incremental_encoder_2_test(
     mc,
     alias,
