@@ -1,3 +1,4 @@
+import logging
 import sys
 import time
 from types import SimpleNamespace
@@ -9,11 +10,16 @@ import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import OperationMode
-from ingeniamotion.exceptions import IMTimeoutError
+from ingeniamotion.exceptions import (
+    IMErrorQueueNotExistsError,
+    IMRegisterNotExistError,
+    IMTimeoutError,
+)
 from ingeniamotion.motion import Motion
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
 if TYPE_CHECKING:
+    from ingenialink.servo import Servo
     from pytest_mock import MockerFixture
 
     from ingeniamotion.motion_controller import MotionController
@@ -39,6 +45,121 @@ CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
 ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
 VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
+PROFILE_POSITION_LATCH_MODE = 0x40
+
+
+logger = logging.getLogger(__name__)
+
+TARGET_LATCH_DEBUG_REGISTERS = (
+    PROFILER_LATCHING_MODE_REGISTER,
+    Motion.CONTROL_WORD_REGISTER,
+    "DRV_STATE_STATUS",
+    OPERATION_MODE_REGISTER,
+    "DRV_OP_VALUE",
+    POSITION_SET_POINT_REGISTER,
+    ACTUAL_POSITION_REGISTER,
+    ACTUAL_VELOCITY_REGISTER,
+)
+TARGET_LATCH_DIAGNOSTIC_REGISTERS = (
+    "DRV_DIAG_ERROR_LAST",
+    "DRV_DIAG_ERROR_TOTAL",
+    "CL_POS_CMD_VALUE",
+    "CL_VEL_CMD_VALUE",
+    CURRENT_QUADRATURE_SET_POINT_REGISTER,
+    "CL_CUR_Q_REF_VALUE",
+    "CL_CUR_Q_CMD_VALUE",
+    ACTUAL_QUADRATURE_CURRENT_REGISTER,
+    "CL_CUR_Q_ERROR_FOLLOWING",
+    "CL_POS_ERROR_FOLLOWING",
+    "MOT_RATED_CURRENT",
+    "CL_CUR_REF_MAX",
+    "MOT_BRAKE_CONFIGURATION",
+    "MOT_BRAKE_CONTROL_MODE",
+    "MOT_BRAKE_OVERRIDE",
+    "MOT_BRAKE_CUR_VALUE",
+    "MOT_BRAKE_CUR_CMD",
+    "SET_POINT_SRC",
+    "CL_POS_REF_MIN",
+    "CL_POS_REF_MAX",
+    "CL_POS_REF_MIN_RANGE",
+    "CL_POS_REF_MAX_RANGE",
+    "PROF_POS_OPTION_CODE",
+    "IO_IN_QS",
+    "ERROR_STATE_QS_OPTION",
+    "IO_IN_HALT",
+    "ERROR_STATE_HALT_OPTION",
+    "DRV_PROT_STO_STATUS",
+    "CIA301_COMMS_ERROR_FIELD",
+)
+TARGET_LATCH_DIAGNOSTIC_REGISTER_AXES = {"CIA301_COMMS_ERROR_FIELD": 0}
+
+
+def _get_debug_target_latch_register(mc: "MotionController", alias: str, register: str):
+    try:
+        axis = TARGET_LATCH_DIAGNOSTIC_REGISTER_AXES.get(register, 1)
+        return mc.communication.get_register(register, servo=alias, axis=axis)
+    except (IMRegisterNotExistError, exceptions.ILError) as error:
+        return f"{type(error).__name__}: {error}"
+
+
+def _get_debug_target_latch_error_history(mc: "MotionController", alias: str):
+    try:
+        return mc.errors.get_all_errors(servo=alias, axis=1)
+    except (
+        IMErrorQueueNotExistsError,
+        IMRegisterNotExistError,
+        TypeError,
+        exceptions.ILError,
+    ) as error:
+        return f"{type(error).__name__}: {error}"
+
+
+def _cleanup_target_latch_motion(mc: "MotionController", alias: str, restore_brake: bool) -> None:
+    original_exception = sys.exc_info()[1]
+    cleanup_error: Optional[Exception] = None
+    try:
+        mc.motion.motor_disable(servo=alias)
+    except Exception as error:
+        cleanup_error = error
+    try:
+        mc.motion.clear_target_latch(servo=alias)
+    except Exception as error:
+        if cleanup_error is None:
+            cleanup_error = error
+    if restore_brake:
+        try:
+            mc.configuration.default_brake(servo=alias)
+            brake_override = mc.communication.get_register(
+                mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                servo=alias,
+                axis=1,
+            )
+            if brake_override != mc.configuration.BrakeOverride.OVERRIDE_DISABLED:
+                raise AssertionError(
+                    f"Brake override was not disabled after cleanup: {brake_override}"
+                )
+        except Exception as error:
+            if cleanup_error is None:
+                cleanup_error = error
+    if original_exception is None and cleanup_error is not None:
+        raise cleanup_error
+
+
+def _debug_target_latch_state(
+    mc: "MotionController", alias: str, label: str, detailed: bool = False
+) -> None:
+    if not logger.isEnabledFor(logging.INFO):
+        return
+
+    state = {}
+    registers = TARGET_LATCH_DEBUG_REGISTERS
+    if detailed:
+        registers += TARGET_LATCH_DIAGNOSTIC_REGISTERS
+    for register in registers:
+        state[register] = _get_debug_target_latch_register(mc, alias, register)
+    if detailed:
+        state["DRV_DIAG_ERROR_HISTORY"] = _get_debug_target_latch_error_history(mc, alias)
+    logger.info("Target latch %s: %s", label, state)
 
 
 def delayed_function_return(delay_s: int, first_response: Any, delayed_response: Any):
@@ -60,28 +181,161 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
             yield delayed_response
 
 
+def _run_target_latch_motion(
+    servo: "Servo",
+    mc: "MotionController",
+    alias: str,
+    brake_released: bool = False,
+) -> None:
+    try:
+        if brake_released:
+            mc.configuration.release_brake(servo=alias)
+            assert (
+                mc.communication.get_register(
+                    mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                    servo=alias,
+                    axis=1,
+                )
+                == mc.configuration.BrakeOverride.RELEASE_BRAKE
+            )
+            logger.info("Target latch brake override set to release")
+
+        with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+            _debug_target_latch_state(mc, alias, "before setup")
+            mc.communication.set_register(
+                PROFILER_LATCHING_MODE_REGISTER,
+                PROFILE_POSITION_LATCH_MODE,
+                servo=alias,
+            )
+            _debug_target_latch_state(mc, alias, "after latch mode setup")
+            mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+            _debug_target_latch_state(mc, alias, "after profile-position mode setup")
+            mc.motion.motor_enable(servo=alias)
+            _debug_target_latch_state(mc, alias, "after motor enable")
+            pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
+            init_pos = int(mc.motion.get_actual_position(servo=alias))
+            target_pos = init_pos + pos_res
+            position_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+            logger.info(
+                "Target latch position setup: resolution=%s initial=%s target=%s tolerance=%s",
+                pos_res,
+                init_pos,
+                target_pos,
+                position_tolerance,
+            )
+
+            logger.info("Target latch writing pending setpoint %s", target_pos)
+            mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
+            _debug_target_latch_state(mc, alias, "after setpoint write")
+            mc.motion.wait_for_position(init_pos, servo=alias, error=position_tolerance, timeout=1)
+            test_act_pos = mc.motion.get_actual_position(servo=alias)
+            logger.info("Target latch pending-position check: actual=%s", test_act_pos)
+            assert pytest.approx(init_pos, abs=position_tolerance) == test_act_pos
+            _debug_target_latch_state(mc, alias, "before target latch")
+
+            logger.info("Target latch triggering target %s", target_pos)
+            try:
+                mc.motion.target_latch(servo=alias)
+            except (IMTimeoutError, TypeError, exceptions.ILError):
+                _debug_target_latch_state(mc, alias, "target latch failure", detailed=True)
+                raise
+            _debug_target_latch_state(mc, alias, "after target latch")
+            try:
+                mc.motion.wait_for_position(
+                    target_pos, servo=alias, error=position_tolerance, timeout=5
+                )
+            except IMTimeoutError:
+                _debug_target_latch_state(mc, alias, "target position timeout", detailed=True)
+                raise
+            test_act_pos = mc.motion.get_actual_position(servo=alias)
+            logger.info("Target latch target-position check: actual=%s", test_act_pos)
+            assert pytest.approx(target_pos, abs=position_tolerance) == test_act_pos
+            _debug_target_latch_state(mc, alias, "after target position")
+    finally:
+        _cleanup_target_latch_motion(mc, alias, restore_brake=brake_released)
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
-    skip_reason="https://novantamotion.atlassian.net/browse/CIT-780",
-)
-def test_target_latch(servo, mc, alias):
-    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
-        mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
-        mc.motion.motor_enable(servo=alias)
-        pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
-        init_pos = int(mean_actual_velocity_position(mc, alias))
-        mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
-        test_act_pos = mean_actual_velocity_position(mc, alias)
-        time.sleep(1)
-        rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-        assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
-        mc.motion.target_latch(servo=alias)
-        time.sleep(1)
-        test_act_pos = mean_actual_velocity_position(mc, alias)
-        assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
+@pytest.mark.repeat(100)
+def test_target_latch(servo: "Servo", mc: "MotionController", alias: str) -> None:
+    _run_target_latch_motion(servo, mc, alias, brake_released=True)
+
+
+@pytest.mark.canopen
+def test_target_latch_with_brake_released(
+    servo: "Servo", mc: "MotionController", alias: str
+) -> None:
+    _run_target_latch_motion(servo, mc, alias, brake_released=True)
+
+
+@pytest.mark.canopen
+def test_profile_position_move_with_brake_released(
+    servo: "Servo", mc: "MotionController", alias: str
+) -> None:
+    try:
+        mc.configuration.release_brake(servo=alias)
+        assert (
+            mc.communication.get_register(
+                mc.configuration.BRAKE_OVERRIDE_REGISTER,
+                servo=alias,
+                axis=1,
+            )
+            == mc.configuration.BrakeOverride.RELEASE_BRAKE
+        )
+
+        with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+            mc.communication.set_register(
+                PROFILER_LATCHING_MODE_REGISTER,
+                0,
+                servo=alias,
+            )
+            assert (
+                mc.communication.get_register(
+                    PROFILER_LATCHING_MODE_REGISTER,
+                    servo=alias,
+                    axis=1,
+                )
+                == 0
+            )
+            mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+            mc.motion.motor_enable(servo=alias)
+
+            position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+            initial_position = int(mc.motion.get_actual_position(servo=alias))
+            target_position = initial_position + position_resolution
+            position_tolerance = position_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+            logger.info(
+                "Direct profile-position move setup: resolution=%s initial=%s target=%s "
+                "tolerance=%s",
+                position_resolution,
+                initial_position,
+                target_position,
+                position_tolerance,
+            )
+            _debug_target_latch_state(mc, alias, "before direct profile-position move")
+
+            try:
+                mc.motion.move_to_position(
+                    target_position,
+                    servo=alias,
+                    target_latch=False,
+                    blocking=True,
+                    error=position_tolerance,
+                    timeout=5,
+                )
+            except IMTimeoutError:
+                _debug_target_latch_state(
+                    mc, alias, "direct profile-position move timeout", detailed=True
+                )
+                raise
+
+            actual_position = mc.motion.get_actual_position(servo=alias)
+            logger.info("Direct profile-position move result: actual=%s", actual_position)
+            assert pytest.approx(target_position, abs=position_tolerance) == actual_position
+    finally:
+        _cleanup_target_latch_motion(mc, alias, restore_brake=True)
 
 
 @pytest.mark.virtual
@@ -303,6 +557,22 @@ def test_motor_disable(mc, alias, enable_motor):
         mc.motion.motor_enable(servo=alias)
     mc.motion.motor_disable(servo=alias)
     assert not mc.configuration.is_motor_enabled(servo=alias)
+
+
+@pytest.mark.virtual
+def test_motor_disable_attempts_disable_when_status_read_fails(mocker) -> None:
+    """Test that motor_disable attempts to disable the motor even when reading the status fails."""
+    drive = mocker.Mock()
+    mc = SimpleNamespace(
+        _get_drive=mocker.Mock(return_value=drive),
+        configuration=SimpleNamespace(
+            is_motor_enabled=mocker.Mock(side_effect=exceptions.ILError("status unavailable"))
+        ),
+    )
+
+    Motion(mc).motor_disable()
+
+    drive.disable.assert_called_once_with(subnode=1)
 
 
 @pytest.mark.ethernet
