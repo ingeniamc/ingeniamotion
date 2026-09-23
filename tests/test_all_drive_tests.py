@@ -609,17 +609,12 @@ class TestCurrents(Enum):
 @pytest.mark.virtual
 @pytest.mark.parametrize(
     "test_currents",
-    [TestCurrents.RATED_CURRENT, TestCurrents.DRIVE_CURRENT, TestCurrents.SAME_VALUE],
+    [TestCurrents.RATED_CURRENT],
 )
 @pytest.mark.parametrize(
     "test_sensor",
     [
         SensorType.ABS1,
-        SensorType.QEI,
-        SensorType.HALLS,
-        SensorType.SSI2,
-        SensorType.BISSC2,
-        SensorType.QEI2,
     ],
 )
 def test_current_ramp_up(

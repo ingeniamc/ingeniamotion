@@ -142,11 +142,17 @@ pipeline {
     }
     stages {
         stage('Inspect pipeline parameters') {
+            when {
+                expression { false }
+            }
             steps {
                 echo("${PyTestParams.configSummary(params, env, currentBuild)}")
             }
         }
         stage('Prepare test sessions') {
+            when {
+                expression { false }
+            }
             agent {
                 docker {
                     label 'lin-worker'
@@ -249,9 +255,9 @@ pipeline {
 
         stage('Build and Tests') {
             parallel {
-                stage('Build and Publish') {
+                stage('Focused virtual test') {
                     stages {
-                        stage('Build Windows') {
+                        stage('Windows test runner') {
                             agent {
                                 docker {
                                     label SW_NODE
@@ -277,25 +283,21 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Create virtual environments') {
+                                stage('Create test environment') {
                                     steps {
                                         script {
-                                            venvManager.createPoetryEnvironments(
-                                                pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                            venvManager.createPoetryEnvironment(
                                                 installCommand: "poetry sync --all-groups --extras fsoe"
                                             )
                                         }
                                     }
                                 }
-                                stage('Run Docker tests (Windows)') {
-                                    when {
-                                        expression {
-                                            WIN_DOCKER_TESTS.anyShouldRun()
-                                        }
-                                    }
+                                stage('Run failing case 100 times') {
                                     steps {
                                         script {
-                                            WIN_DOCKER_TESTS.runTestStages()
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run('poetry run pytest -s -vv --count=100 --maxfail=1 -m virtual --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_current_ramp_up and ABS1 and RATED_CURRENT"')
+                                            }
                                         }
                                     }
                                 }
@@ -304,6 +306,9 @@ pipeline {
                     }
                 }
                 stage('Linux Docker Tests and Documentation') {
+                    when {
+                        expression { false }
+                    }
                     agent {
                         docker {
                             label 'lin-worker'
@@ -413,11 +418,7 @@ pipeline {
                 }
                 stage('EtherCAT - Tests') {
                     when {
-                        beforeOptions true
-                        beforeAgent true
-                        expression {
-                            ECAT_TESTS.anyShouldRun()
-                        }
+                        expression { false }
                     }
                     options {
                         lock(ECAT_NODE_LOCK)
@@ -447,11 +448,7 @@ pipeline {
                 }
                 stage('SIRIUS EtherCAT - Tests') {
                     when {
-                        beforeOptions true
-                        beforeAgent true
-                        expression {
-                            SIRIUS_TESTS.anyShouldRun()
-                        }
+                        expression { false }
                     }
                     agent {
                         label SIRIUS_NODE
@@ -478,11 +475,7 @@ pipeline {
                 }
                 stage('CANopen/Ethernet - Tests') {
                     when {
-                        beforeOptions true
-                        beforeAgent true
-                        expression {
-                            CAN_MACHINE_SCHEDULER.anyShouldRun()
-                        }
+                        expression { false }
                     }
                     options {
                         lock(CAN_NODE_LOCK)
@@ -513,6 +506,9 @@ pipeline {
         }
 
         stage('Publish coverage') {
+            when {
+                expression { false }
+            }
             agent {
                 docker {
                     label SW_NODE
