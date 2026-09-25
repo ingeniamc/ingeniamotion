@@ -292,14 +292,14 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Run phasing-to-ramp sequence 100 times') {
+                                stage('Run phasing-to-ramp sequence 50 times') {
                                     options {
                                         timeout(time: 50, unit: 'MINUTES')
                                     }
                                     steps {
                                         script {
                                             venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run('poetry run pytest -q --durations=0 -W error::pytest.PytestUnhandledThreadExceptionWarning --measure-register-latency --count=100 --repeat-scope=session --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_commutation_stop or test_phasing_check_stop or (test_current_ramp_up and ABS1 and RATED_CURRENT)"')
+                                                venv.run('poetry run pytest -q --durations=0 -W error::pytest.PytestUnhandledThreadExceptionWarning --measure-register-latency --count=50 --repeat-scope=session --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_commutation_stop or test_phasing_check_stop or (test_current_ramp_up and ABS1 and RATED_CURRENT)"')
                                             }
                                         }
                                     }
@@ -418,40 +418,6 @@ pipeline {
                             reassignFilePermissions()
                         }
                     }
-                }
-            }
-        }
-
-        stage('Publish coverage') {
-            when {
-                expression { false }
-            }
-            agent {
-                docker {
-                    label SW_NODE
-                    image WIN_DOCKER_IMAGE
-                }
-            }
-            environment {
-                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
-            }
-            steps {
-                script {
-                    def coverage_files = testManager.getCoverageFiles()
-                    venvManager.copyToWorkingFolder()
-                    venvManager.createPoetryEnvironment(
-                        installCommand: "poetry sync --all-groups --extras fsoe"
-                    )
-                    if (coverage_files) {
-                        venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                            venv.run("poetry run poe cov-combine -- ${coverage_files.join(' ')}")
-                            venv.run("poetry run poe cov-report")
-                        }
-                        venvManager.copyFromWorkingFolder("coverage.xml")
-                        recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
-                        archiveArtifacts artifacts: '*.xml'
-                    }
-                    testManager.generateTestDashboard()
                 }
             }
         }

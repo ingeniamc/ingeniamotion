@@ -6,6 +6,7 @@ from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
+from statistics import fmean, median
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
 
@@ -103,11 +104,18 @@ def measure_register_latency(
         if durations:
             p95 = durations[math.ceil(0.95 * len(durations)) - 1]
             operation_summaries.append(
-                f"{operation}_n={len(durations)}_{operation}_p95={p95:.6f}s"
+                f"{operation}_n={len(durations)}"
+                f"_{operation}_min={durations[0]:.6f}s"
+                f"_{operation}_mean={fmean(durations):.6f}s"
+                f"_{operation}_median={median(durations):.6f}s"
+                f"_{operation}_p95={p95:.6f}s"
                 f"_{operation}_max={durations[-1]:.6f}s"
             )
         else:
-            operation_summaries.append(f"{operation}_n=0_{operation}_p95=n/a_{operation}_max=n/a")
+            operation_summaries.append(
+                f"{operation}_n=0_{operation}_min=n/a_{operation}_mean=n/a"
+                f"_{operation}_median=n/a_{operation}_p95=n/a_{operation}_max=n/a"
+            )
 
     line = (
         f"IM_REGISTER_TIMING node={request.node.nodeid} calls={len(timings)} "
