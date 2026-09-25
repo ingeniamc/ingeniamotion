@@ -1,10 +1,9 @@
 import logging
-import os
 import random
 import time
 from collections.abc import Collection
 from enum import Enum
-from threading import Event, Thread
+from threading import Thread
 from typing import TYPE_CHECKING
 
 import pytest
@@ -33,7 +32,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from ingeniamotion.wizard_tests.stoppable import StopExceptionError
 from tests.conftest import refresh_registers_for_test_rollback
 
 # Record stop opportunities for every wizard-test integration case in this module.
@@ -536,96 +534,6 @@ def run_test_and_stop(test):
     test_thread.join()
 
 
-@pytest.mark.virtual
-@pytest.mark.skipif(
-    os.getenv("INGENIAMOTION_REPRODUCE_STOP_LEAK") != "1",
-    reason="Enabled only for the focused Jenkins fault-injection run",
-)
-def test_reproduce_stale_stop_after_virtual_write_timeout(
-    mc: "MotionController", alias: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    drive = mc._get_drive(alias)
-    virtual_base = drive._virtual_base
-    original_receive_frame = virtual_base.receive_frame
-    original_set_register = mc.communication.set_register
-    receive_timeouts_remaining = 0
-    receive_timeouts_injected = 0
-    fault_triggered = False
-    timeout_event = Event()
-
-    def receive_frame():
-        nonlocal receive_timeouts_injected, receive_timeouts_remaining
-        if receive_timeouts_remaining:
-            receive_timeouts_remaining -= 1
-            receive_timeouts_injected += 1
-            original_receive_frame()
-            if receive_timeouts_remaining == 0:
-                timeout_event.set()
-            raise exceptions.ILTimeoutError("Injected virtual Ethernet receive timeout")
-        return original_receive_frame()
-
-    def set_register(register, value, *args, **kwargs):
-        nonlocal fault_triggered, receive_timeouts_remaining
-        if (
-            not fault_triggered
-            and register == "CL_CUR_D_SET_POINT"
-            and value != 0
-        ):
-            fault_triggered = True
-            receive_timeouts_remaining = 2
-        return original_set_register(register, value, *args, **kwargs)
-
-    monkeypatch.setattr(virtual_base, "receive_frame", receive_frame)
-    monkeypatch.setattr(mc.communication, "set_register", set_register)
-    monkeypatch.setattr(
-        mc.configuration,
-        "is_commutation_feedback_aligned",
-        lambda *args, **kwargs: True,
-    )
-
-    previous_test = PhasingCheck(mc, alias, 1)
-    original_run = previous_test.run
-    worker_errors = []
-
-    def capture_worker_error():
-        try:
-            original_run()
-        except BaseException as error:
-            worker_errors.append(error)
-
-    monkeypatch.setattr(previous_test, "run", capture_worker_error)
-    worker = Thread(target=previous_test.run)
-    worker.start()
-    fault_reached = timeout_event.wait(timeout=15)
-    if not fault_reached and worker.is_alive():
-        previous_test.stop()
-    worker.join(timeout=15)
-
-    try:
-        assert fault_reached
-        assert not worker.is_alive()
-        assert fault_triggered
-        assert receive_timeouts_injected == 2
-        assert len(worker_errors) == 1
-        assert isinstance(worker_errors[0], exceptions.ILTimeoutError)
-        logging.getLogger(__name__).error(
-            "PhasingCheck worker raised during injected receive timeout",
-            exc_info=(type(worker_errors[0]), worker_errors[0], worker_errors[0].__traceback__),
-        )
-
-        time.sleep(2)
-        previous_test.stop()
-        assert previous_test.stop_queue.qsize() == 1
-        ramp_test = AbsoluteEncoder1Test(mc, alias, 1)
-        with pytest.raises(StopExceptionError):
-            ramp_test.current_ramp_up()
-        logging.getLogger(__name__).warning(
-            "REPRODUCED: the stale stop from PhasingCheck interrupted current_ramp_up"
-        )
-    finally:
-        previous_test.reset_stop()
-
-
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -701,12 +609,17 @@ class TestCurrents(Enum):
 @pytest.mark.virtual
 @pytest.mark.parametrize(
     "test_currents",
-    [TestCurrents.RATED_CURRENT],
+    [TestCurrents.RATED_CURRENT, TestCurrents.DRIVE_CURRENT, TestCurrents.SAME_VALUE],
 )
 @pytest.mark.parametrize(
     "test_sensor",
     [
         SensorType.ABS1,
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.SSI2,
+        SensorType.BISSC2,
+        SensorType.QEI2,
     ],
 )
 def test_current_ramp_up(
