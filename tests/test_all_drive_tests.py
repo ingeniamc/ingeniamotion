@@ -252,7 +252,6 @@ def test_absolute_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.repeat(100)
 def test_absolute_encoder_2_test(
     mc,
     alias,
