@@ -292,14 +292,14 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Run phasing check 100 times') {
+                                stage('Run phasing-to-ramp sequence 100 times') {
                                     options {
                                         timeout(time: 50, unit: 'MINUTES')
                                     }
                                     steps {
                                         script {
                                             venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run('poetry run pytest -q --durations=0 -W error::pytest.PytestUnhandledThreadExceptionWarning --count=100 --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k test_phasing_check_stop')
+                                                venv.run('poetry run pytest -q --durations=0 -W error::pytest.PytestUnhandledThreadExceptionWarning --count=100 --repeat-scope=session --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py::test_commutation_stop tests/test_all_drive_tests.py::test_phasing_check_stop "tests/test_all_drive_tests.py::test_current_ramp_up[SensorType.ABS1-TestCurrents.RATED_CURRENT]"')
                                             }
                                         }
                                     }
