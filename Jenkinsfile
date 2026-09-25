@@ -299,7 +299,7 @@ pipeline {
                                     steps {
                                         script {
                                             venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run('poetry run pytest -q --durations=0 -W error::pytest.PytestUnhandledThreadExceptionWarning --count=100 --repeat-scope=session --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_commutation_stop or test_phasing_check_stop or (test_current_ramp_up and ABS1 and RATED_CURRENT)"')
+                                                venv.run('poetry run pytest -q --durations=0 -W error::pytest.PytestUnhandledThreadExceptionWarning --measure-register-latency --count=100 --repeat-scope=session --setup tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP tests/test_all_drive_tests.py -k "test_commutation_stop or test_phasing_check_stop or (test_current_ramp_up and ABS1 and RATED_CURRENT)"')
                                             }
                                         }
                                     }

@@ -566,6 +566,7 @@ def test_feedback_stop(
 
 
 @pytest.mark.virtual
+@pytest.mark.usefixtures("measure_register_latency")
 def test_commutation_stop(
     mc: "MotionController",
     alias: str,
@@ -585,6 +586,7 @@ def test_commutation_stop(
 
 
 @pytest.mark.virtual
+@pytest.mark.usefixtures("measure_register_latency")
 def test_phasing_check_stop(
     mc: "MotionController",
     alias: str,
@@ -607,6 +609,7 @@ class TestCurrents(Enum):
 
 
 @pytest.mark.virtual
+@pytest.mark.usefixtures("measure_register_latency")
 @pytest.mark.parametrize(
     "test_currents",
     [TestCurrents.RATED_CURRENT, TestCurrents.DRIVE_CURRENT, TestCurrents.SAME_VALUE],

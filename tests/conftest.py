@@ -1,9 +1,13 @@
 import logging
+import math
 import time
+from collections import Counter
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
+from threading import Lock
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
 import pytest
@@ -35,6 +39,84 @@ BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 
 # Fraction of exhaustive test configurations to run in shorter daytime test sessions.
 RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--measure-register-latency",
+        action="store_true",
+        help="Measure IngeniaLink register read/write latency in selected tests.",
+    )
+
+
+@pytest.fixture
+def measure_register_latency(
+    request: pytest.FixtureRequest,
+    mc: "MotionController",
+    alias: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[None]:
+    if not request.config.getoption("--measure-register-latency"):
+        yield
+        return
+
+    drive = mc._get_drive(alias)
+    timings: list[tuple[str, str, float]] = []
+    timings_lock = Lock()
+
+    def timed_method(operation: str, original: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(original)
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            register = args[0] if args else kwargs.get("reg", "<unknown>")
+            register_uid = str(getattr(register, "uid", getattr(register, "name", register)))
+            started_at = time.perf_counter()
+            try:
+                return original(*args, **kwargs)
+            finally:
+                elapsed = time.perf_counter() - started_at
+                with timings_lock:
+                    timings.append((operation, register_uid, elapsed))
+
+        return wrapped
+
+    monkeypatch.setattr(drive, "read", timed_method("read", drive.read))
+    monkeypatch.setattr(drive, "write", timed_method("write", drive.write))
+
+    yield
+
+    slow_calls = [timing for timing in timings if timing[2] >= 1.0]
+    slow_by_register = Counter((operation, uid) for operation, uid, _ in slow_calls)
+    slow_summary = ",".join(
+        f"{operation}:{uid}={count}"
+        for (operation, uid), count in slow_by_register.most_common()
+    ) or "none"
+    top_calls = sorted(timings, key=lambda timing: timing[2], reverse=True)[:3]
+    top_summary = ",".join(
+        f"{operation}:{uid}={elapsed:.6f}s" for operation, uid, elapsed in top_calls
+    ) or "none"
+
+    operation_summaries = []
+    for operation in ("read", "write"):
+        durations = sorted(
+            elapsed for recorded_operation, _, elapsed in timings if recorded_operation == operation
+        )
+        if durations:
+            p95 = durations[math.ceil(0.95 * len(durations)) - 1]
+            operation_summaries.append(
+                f"{operation}_n={len(durations)}_{operation}_p95={p95:.6f}s"
+                f"_{operation}_max={durations[-1]:.6f}s"
+            )
+        else:
+            operation_summaries.append(f"{operation}_n=0_{operation}_p95=n/a_{operation}_max=n/a")
+
+    line = (
+        f"IM_REGISTER_TIMING node={request.node.nodeid} calls={len(timings)} "
+        f"slow_ge_1s={len(slow_calls)} {' '.join(operation_summaries)} "
+        f"slow_by_uid={slow_summary} top={top_summary}"
+    )
+    reporter = request.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is not None:
+        reporter.write_line(line)
 
 
 pytest_plugins = [
