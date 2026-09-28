@@ -25,9 +25,6 @@ from tests.conftest import RANDOM_COMBINATIONS_SLICE_KEY
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
 
-# Tests that are known to be flaky for BISS-C configuration should be marked with this marker.
-BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
-
 ETH_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_C: RackServiceConfigSpecifier.from_version_configs(
         part_number=PartNumber.EVE_XCR_C,
@@ -438,7 +435,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers=f"soem and {BISS_C_CONFIG_MARKER}",  # https://novantamotion.atlassian.net/browse/INGM-798
+                        markers="soem",
                         run_test_stage_uid="ethercat_everest_s_2.11.0",
                         stage_name="SIRIUS EVS-NET-E (BiSS-C) Tests - FW. 2.11.0",
                     )
@@ -467,7 +464,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers=f"soem and {BISS_C_CONFIG_MARKER}",  # https://novantamotion.atlassian.net/browse/INGM-798
+                        markers="soem",
                         run_test_stage_uid="ethercat_everest_s_2.10.0",
                         stage_name="SIRIUS EVS-NET-E (SSI) Tests - FW. 2.10.0",
                     )
