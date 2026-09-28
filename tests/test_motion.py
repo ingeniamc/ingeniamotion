@@ -355,10 +355,6 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-# Remove marker when the issue is resolved: https://novantamotion.atlassian.net/browse/INGM-798
-@pytest.mark.biss_c_flaky(
-    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
-)
 @forbids_biss_c_configuration("CAP-*")
 @forbids_biss_c_configuration("EVE-*")
 @forbids_biss_c_configuration("EVS-*")
@@ -494,10 +490,6 @@ def test_ramp_step_callback(ramp_method):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
-# Remove marker when the issue is resolved: https://novantamotion.atlassian.net/browse/INGM-798
-@pytest.mark.biss_c_flaky(
-    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
-)
 @forbids_biss_c_configuration("CAP-*")
 @forbids_biss_c_configuration("EVE-*")
 @forbids_biss_c_configuration("EVS-*")

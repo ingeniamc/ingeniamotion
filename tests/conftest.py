@@ -12,12 +12,20 @@ from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.configuration.conditions import ConfigCondition, ConfigExpression
+from summit_testing_framework.configuration.feedback_constants import FeedbackSensorType
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
+from summit_testing_framework.setups.specifiers import (
+    DictionaryType,
+    DictionaryVersion,
+    MultiRackServiceConfigSpecifier,
+    RackServiceConfigSpecifier,
+)
 
+from ingeniamotion.enums import SensorType
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
+from tests.setup_feedbacks import AVAILABLE_FEEDBACKS_BY_PART_NUMBER
 
 if TYPE_CHECKING:
     from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
@@ -31,6 +39,30 @@ logger = logging.getLogger(__name__)
 
 # Fraction of exhaustive test configurations to run in shorter daytime test sessions.
 RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
+
+
+def _convert_feedbacks(feedbacks: tuple[FeedbackSensorType, ...]):
+    return [SensorType(feedback.value) for feedback in feedbacks]
+
+
+@pytest.fixture(scope="session")
+def available_feedbacks(setup_specifier):
+    """Feedback sensors physically available on the active CI setup.
+
+    Returns:
+        Feedback sensors for a single setup, or one list per drive in a multi-drive setup.
+
+    Raises:
+        TypeError: If the active setup is not a supported hardware setup.
+    """
+    if isinstance(setup_specifier, RackServiceConfigSpecifier):
+        return _convert_feedbacks(AVAILABLE_FEEDBACKS_BY_PART_NUMBER[setup_specifier.part_number])
+    if isinstance(setup_specifier, MultiRackServiceConfigSpecifier):
+        return [
+            _convert_feedbacks(AVAILABLE_FEEDBACKS_BY_PART_NUMBER[specifier.part_number])
+            for specifier in setup_specifier.specifiers
+        ]
+    raise TypeError(f"Unsupported setup specifier: {type(setup_specifier).__name__}")
 
 
 def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
