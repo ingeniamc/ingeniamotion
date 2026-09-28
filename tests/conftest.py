@@ -81,16 +81,18 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
-def __config_uses_biss_c(config_file: "Path") -> bool:
-    """Checks if the configuration file uses BISS-C protocol.
+def __config_uses_biss_c(config: Union[Path, LayeredConfig]) -> bool:
+    """Checks if the configuration uses BISS-C protocol.
 
     Args:
-        config_file: Path to the configuration file.
+        config: Object representing the configuration.
 
     Returns:
         bool: True if the configuration file uses BISS-C protocol, False otherwise.
     """
-    layered_config: LayeredConfig = LayeredConfig.from_xcf(config_file)
+    layered_config: LayeredConfig = (
+        LayeredConfig.from_xcf(config) if isinstance(config, Path) else config
+    )
 
     def register_has_expected_value(register: str, expected_value: int) -> bool:
         check_result = layered_config.check_reg(register, expected_value)
