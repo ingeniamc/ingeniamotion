@@ -12,7 +12,6 @@ from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.configuration.conditions import ConfigCondition, ConfigExpression
-from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
@@ -21,6 +20,8 @@ from summit_testing_framework.setups.specifiers import DictionaryType, Dictionar
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
+    from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
+
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
     from ingeniamotion.motion_node import MotionNode
@@ -249,7 +250,7 @@ def slice_configurations(
 
 
 @pytest.fixture(scope="session")
-def stoppable_profiler_config() -> StoppableProfilerConfig:
+def stoppable_profiler_config() -> "StoppableProfilerConfig":
     """Provide the stoppable profiler configuration for ingeniamotion.
 
     Supplies the gap thresholds required by the stoppable gaps plugin.
@@ -257,6 +258,10 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
     Returns:
         The stoppable profiler configuration.
     """
+    from summit_testing_framework.profilers.stoppable_gaps import (  # noqa: PLC0415
+        StoppableProfilerConfig,
+    )
+
     return StoppableProfilerConfig(
         gap_threshold_seconds=5.1,
         good_enough_gap_seconds=0.2,

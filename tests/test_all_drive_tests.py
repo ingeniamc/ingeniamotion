@@ -597,6 +597,8 @@ def test_phasing_check_stop(
 
 
 class TestCurrents(Enum):
+    __test__ = False
+
     RATED_CURRENT = "Rated current"
     DRIVE_CURRENT = "Drive current"
     SAME_VALUE = "Same value"
