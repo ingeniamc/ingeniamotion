@@ -10,6 +10,7 @@ import pytest
 from ingenialink import exceptions
 from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.servo import Servo
+from summit_testing_framework.configuration.conditions import ConfigCondition
 from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
 
 from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
@@ -255,6 +256,13 @@ def test_absolute_encoder_1_test(
 @pytest.mark.not_valid_for_specifier(
     specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-786",
+)
+@pytest.mark.requires_configuration(
+    condition=ConfigCondition("FBK_SSI2_PROTOCOL", 0),
+    skip_reason=(
+        "Absolute encoder 2 BiSS-C test is only valid when the secondary "
+        "channel is configured for BiSS-C."
+    ),
 )
 def test_absolute_encoder_2_test(
     mc,

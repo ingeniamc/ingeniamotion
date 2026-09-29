@@ -431,8 +431,8 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
             })
-            # Match the SSI1 protocol applied to ABS_ENCODER_2 via feedback_configuration below.
-            .override_reg("FBK_SSI2_PROTOCOL", 1),
+            # Match the BiSS-C protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 0),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
@@ -448,7 +448,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                     protocol=EncoderProtocol.BIS3, resolution_bits=17
                 ),
                 abs_encoder_2_configuration=EncoderConfiguration(
-                    protocol=EncoderProtocol.SSI1, resolution_bits=10
+                    protocol=EncoderProtocol.BIS3, resolution_bits=10
                 ),
             ),
         ),
