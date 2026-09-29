@@ -422,15 +422,17 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         "2.11.0": VersionConfig.from_version(
             version="2.11.0",
             dictionary_type=DictionaryType.XDF_V3,
-            config_file=LayeredConfig.from_xcf(
-                config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG
-            ).assert_feedbacks({
+            config_file=LayeredConfig
+            .from_xcf(config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG)
+            .assert_feedbacks({
                 FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
-            }),
+            })
+            # Match the SSI1 protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 1),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
@@ -453,15 +455,17 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         "2.10.0": VersionConfig.from_version(
             version="2.10.0",
             dictionary_type=DictionaryType.XDF_V3,
-            config_file=LayeredConfig.from_xcf(
-                config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG
-            ).assert_feedbacks({
+            config_file=LayeredConfig
+            .from_xcf(config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG)
+            .assert_feedbacks({
                 FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
-            }),
+            })
+            # Match the SSI1 protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 1),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
