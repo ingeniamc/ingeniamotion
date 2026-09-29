@@ -297,6 +297,13 @@ def test_absolute_encoder_2_test(
     specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-787",
 )
+@pytest.mark.requires_configuration(
+    condition=ConfigCondition("FBK_SSI2_PROTOCOL", 1),
+    skip_reason=(
+        "Secondary SSI test is only valid when the secondary channel is "
+        "configured for SSI (not BiSS-C)."
+    ),
+)
 def test_secondary_ssi_test(
     mc,
     alias,
