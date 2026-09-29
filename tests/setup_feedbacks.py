@@ -10,5 +10,6 @@ AVAILABLE_FEEDBACKS_BY_PART_NUMBER = {
         FeedbackSensorType.ABS1,
         FeedbackSensorType.QEI,
         FeedbackSensorType.HALLS,
+        FeedbackSensorType.SSI2,
     ),
 }
