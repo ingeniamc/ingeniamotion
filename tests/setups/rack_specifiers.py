@@ -444,7 +444,10 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             feedback_configuration=FeedbackConfiguration.from_configurable(
                 abs_encoder_1_configuration=EncoderConfiguration(
                     protocol=EncoderProtocol.BIS3, resolution_bits=17
-                )
+                ),
+                abs_encoder_2_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=10
+                ),
             ),
         ),
         "2.10.0": VersionConfig.from_version(
@@ -473,7 +476,10 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             feedback_configuration=FeedbackConfiguration.from_configurable(
                 abs_encoder_1_configuration=EncoderConfiguration(
                     protocol=EncoderProtocol.SSI1, resolution_bits=17
-                )
+                ),
+                abs_encoder_2_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=10
+                ),
             ),
         ),
     },
