@@ -12,6 +12,10 @@ from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.configuration.conditions import ConfigCondition, ConfigExpression
+from summit_testing_framework.configuration.feedback_constants import (
+    FeedbackSelectorRegisters,
+    FeedbackSensorType,
+)
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
@@ -46,17 +50,19 @@ def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
         expression=ConfigExpression.any_of(
             ConfigExpression.all_of(
                 ConfigExpression.any_of(
-                    ConfigCondition("CL_VEL_FBK_SENSOR", 1),
-                    ConfigCondition("CL_POS_FBK_SENSOR", 1),
-                    ConfigCondition("COMMU_ANGLE_SENSOR", 1),
+                    ConfigCondition(FeedbackSelectorRegisters.VELOCITY, FeedbackSensorType.ABS1),
+                    ConfigCondition(FeedbackSelectorRegisters.POSITION, FeedbackSensorType.ABS1),
+                    ConfigCondition(FeedbackSelectorRegisters.COMMUTATION, FeedbackSensorType.ABS1),
                 ),
                 ConfigCondition("FBK_BISS1_SSI1_PROTOCOL", 0),
             ),
             ConfigExpression.all_of(
                 ConfigExpression.any_of(
-                    ConfigCondition("CL_VEL_FBK_SENSOR", 7),
-                    ConfigCondition("CL_POS_FBK_SENSOR", 7),
-                    ConfigCondition("COMMU_ANGLE_SENSOR", 7),
+                    ConfigCondition(FeedbackSelectorRegisters.VELOCITY, FeedbackSensorType.BISSC2),
+                    ConfigCondition(FeedbackSelectorRegisters.POSITION, FeedbackSensorType.BISSC2),
+                    ConfigCondition(
+                        FeedbackSelectorRegisters.COMMUTATION, FeedbackSensorType.BISSC2
+                    ),
                 ),
                 ConfigCondition("FBK_SSI2_PROTOCOL", 0),
             ),
