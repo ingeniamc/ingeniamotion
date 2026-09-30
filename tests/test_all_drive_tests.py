@@ -12,6 +12,7 @@ from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.servo import Servo
 from summit_testing_framework.configuration.conditions import ConfigCondition
 from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
+from summit_testing_framework.setups.descriptors import DriveHwSetup
 
 from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.base_test import TestError
@@ -127,7 +128,7 @@ def test_digital_halls_test(
     servo: Servo,
     mc,
     alias,
-    available_feedbacks,
+    setup_descriptor: DriveHwSetup,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
@@ -141,7 +142,7 @@ def test_digital_halls_test(
         ],
     ):
         commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-        if SensorType.HALLS in available_feedbacks:
+        if SensorType.HALLS in setup_descriptor.available_feedbacks:
             results = mc.tests.digital_halls_test(servo=alias)
             assert results["result_severity"] == SeverityLevel.SUCCESS
         else:
@@ -167,13 +168,13 @@ def test_digital_halls_test(
 def test_incremental_encoder_1_test(
     mc,
     alias,
-    available_feedbacks,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.QEI in available_feedbacks:
+    if SensorType.QEI in setup_descriptor.available_feedbacks:
         results = mc.tests.incremental_encoder_1_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -196,7 +197,7 @@ def test_incremental_encoder_1_test(
 def test_incremental_encoder_2_test(
     mc,
     alias,
-    available_feedbacks,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
@@ -204,7 +205,7 @@ def test_incremental_encoder_2_test(
     if not mc.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
         pytest.skip("Incremental encoder 2 is not available")
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.QEI2 in available_feedbacks:
+    if SensorType.QEI2 in setup_descriptor.available_feedbacks:
         results = mc.tests.incremental_encoder_2_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -227,13 +228,13 @@ def test_incremental_encoder_2_test(
 def test_absolute_encoder_1_test(
     mc,
     alias,
-    available_feedbacks,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.ABS1 in available_feedbacks:
+    if SensorType.ABS1 in setup_descriptor.available_feedbacks:
         results = mc.tests.absolute_encoder_1_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -263,13 +264,13 @@ def test_absolute_encoder_1_test(
 def test_absolute_encoder_2_test(
     mc,
     alias,
-    available_feedbacks,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.BISSC2 in available_feedbacks:
+    if SensorType.BISSC2 in setup_descriptor.available_feedbacks:
         results = mc.tests.absolute_encoder_2_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -299,7 +300,7 @@ def test_absolute_encoder_2_test(
 def test_secondary_ssi_test(
     mc,
     alias,
-    available_feedbacks,
+    setup_descriptor: DriveHwSetup,
     feedback_list,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
@@ -308,7 +309,7 @@ def test_secondary_ssi_test(
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         pytest.skip("Can not run the test. Incremental encoder 1 and SSI 2 share pins.")
-    if SensorType.SSI2 in available_feedbacks:
+    if SensorType.SSI2 in setup_descriptor.available_feedbacks:
         results = mc.tests.secondary_ssi_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
