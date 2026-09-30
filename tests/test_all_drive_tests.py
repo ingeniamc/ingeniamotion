@@ -254,13 +254,6 @@ def test_absolute_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.requires_configuration(
-    condition=ConfigCondition("FBK_SSI2_PROTOCOL", 0),
-    skip_reason=(
-        "Absolute encoder 2 BiSS-C test is only valid when the secondary "
-        "channel is configured for BiSS-C."
-    ),
-)
 def test_absolute_encoder_2_test(
     mc,
     alias,
