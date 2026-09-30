@@ -37,6 +37,7 @@ from tests.conftest import refresh_registers_for_test_rollback
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 
+
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
@@ -162,10 +163,6 @@ def test_digital_halls_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-783",
-)
 def test_incremental_encoder_1_test(
     mc,
     alias,
@@ -195,10 +192,6 @@ def test_incremental_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-784",
-)
 def test_incremental_encoder_2_test(
     mc,
     alias,
@@ -230,10 +223,6 @@ def test_incremental_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-785",
-)
 def test_absolute_encoder_1_test(
     mc,
     alias,
@@ -263,10 +252,6 @@ def test_absolute_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-786",
-)
 def test_absolute_encoder_2_test(
     mc,
     alias,
@@ -296,10 +281,6 @@ def test_absolute_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-787",
-)
 def test_secondary_ssi_test(
     mc,
     alias,
@@ -330,9 +311,11 @@ def test_secondary_ssi_test(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-774",
+@pytest.mark.not_valid_version_for_product(
+    part_number="CAP-*",
+    min="2.6.0",
+    max="2.10.0",
+    skip_reason="Flaky test for BISS-C configuration",
 )
 def test_commutation(
     servo: Servo,

@@ -215,8 +215,8 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.9.0": VersionConfig.from_version(
-                version="2.9.0",
+            "2.11.0": VersionConfig.from_version(
+                version="2.11.0",
                 config_file=LayeredConfig.from_xcf(
                     config_files.CAP_XCR_E_2_9_0_CONFIG
                 ).assert_feedbacks({
@@ -226,15 +226,15 @@ ECAT_SETUP = SpecifierContainer({
                     FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                     FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
                 }),
-                dictionary_type=DictionaryType.XDF_V2,
+                dictionary_type=DictionaryType.XDF_V3,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
                     RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.9.0",
-                            stage_name="EtherCAT Capitan - FW. 2.9.0",
+                            run_test_stage_uid="ethercat_capitan_2.11.0",
+                            stage_name="EtherCAT Capitan - FW. 2.11.0",
                         )
                     },
                 },
@@ -399,7 +399,7 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
             identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
+            identifier=PartNumber.CAP_XCR_E, version="2.11.0"
         ),
     ],
     extra_data={
