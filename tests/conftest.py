@@ -11,10 +11,12 @@ from ingenialink import Servo
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.configuration.layered_config import LayeredConfig
-from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
+from summit_testing_framework.configuration.conditions import RegisterCondition, all_of, any_of
+from summit_testing_framework.configuration.feedback_constants import (
+    FeedbackSelectorRegisters,
+    FeedbackSensorType,
+)
 from summit_testing_framework.pytest_helpers.marker_helper import (
-    MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
 from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
@@ -22,7 +24,7 @@ from summit_testing_framework.setups.specifiers import DictionaryType, Dictionar
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
-    from summit_testing_framework.setups.specifiers import SetupSpecifier
+    from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
@@ -30,11 +32,62 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Tests that are known to be flaky for BISS-C configuration should be marked with this marker.
-BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 
 # Fraction of exhaustive test configurations to run in shorter daytime test sessions.
 RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
+
+
+def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
+    """Create a marker for tests that are flaky with a BISS-C configuration.
+
+    Args:
+        part_number: Part-number pattern to which the marker applies.
+
+    Returns:
+        A configuration marker that skips the test for the BISS-C configuration.
+    """
+    return pytest.mark.forbids_configuration(
+        condition=any_of(
+            all_of(
+                any_of(
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.VELOCITY.value,
+                        reg_value=FeedbackSensorType.ABS1,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.POSITION.value,
+                        reg_value=FeedbackSensorType.ABS1,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.COMMUTATION.value,
+                        reg_value=FeedbackSensorType.ABS1,
+                    ),
+                ),
+                RegisterCondition("FBK_BISS1_SSI1_PROTOCOL", 0),
+            ),
+            all_of(
+                any_of(
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.VELOCITY.value,
+                        reg_value=FeedbackSensorType.BISSC2,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.POSITION.value,
+                        reg_value=FeedbackSensorType.BISSC2,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.COMMUTATION.value,
+                        reg_value=FeedbackSensorType.BISSC2,
+                    ),
+                ),
+                RegisterCondition("FBK_SSI2_PROTOCOL", 0),
+            ),
+        ),
+        part_number=part_number,
+        min="2.6.0",
+        max="2.10.0",
+        skip_reason="Flaky test for BISS-C configuration, solved in 2.11.0",
+    )
 
 
 pytest_plugins = [
@@ -81,77 +134,6 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
-def __config_uses_biss_c(config: Union[Path, LayeredConfig]) -> bool:
-    """Checks if the configuration uses BISS-C protocol.
-
-    Args:
-        config: Object representing the configuration.
-
-    Returns:
-        bool: True if the configuration file uses BISS-C protocol, False otherwise.
-    """
-    layered_config: LayeredConfig = (
-        LayeredConfig.from_xcf(config) if isinstance(config, Path) else config
-    )
-
-    def register_has_expected_value(register: str, expected_value: int) -> bool:
-        check_result = layered_config.check_reg(register, expected_value)
-        if check_result is None:
-            return False
-        return check_result[0]
-
-    # Check if Primary Absolute Slave 1 (=1) or Secondary Absolute Slave 1 (=7)
-    # are selected in some of the possible feedback sensors registers:
-    # CL_VEL_FBK_SENSOR, CL_POS_FBK_SENSOR, COMMU_ANGLE_SENSOR
-    # If they are, then check if the corresponding encoder protocol is BISS-C (=0)
-    for register in ["CL_VEL_FBK_SENSOR", "CL_POS_FBK_SENSOR", "COMMU_ANGLE_SENSOR"]:
-        is_primary_abs_slave_selected = register_has_expected_value(register, 1)
-        is_primary_biss_c_protocol = register_has_expected_value("FBK_BISS1_SSI1_PROTOCOL", 0)
-        if is_primary_abs_slave_selected and is_primary_biss_c_protocol:
-            return True
-        is_secondary_abs_slave_selected = register_has_expected_value(register, 7)
-        is_secondary_biss_c_protocol = register_has_expected_value("FBK_SSI2_PROTOCOL", 0)
-        if is_secondary_abs_slave_selected and is_secondary_biss_c_protocol:
-            return True
-
-    return False
-
-
-def apply_configuration_marker_to_items(
-    config: "pytest.Config", items: list["pytest.Item"]
-) -> None:
-    """Applies configuration markers to collected test items.
-
-    There are certain tests that are known to be flaky for BISS-C configuration,
-    and should be skipped for certain firmware versions.
-    """
-    # Check if the setup contains absolute encoder with BISS-C configuration,
-    # so that proper tests can be skipped
-    marker_helper: MarkerHelper = MarkerHelper(config=config)
-    if not marker_helper.is_setup_specified:
-        return
-    setup_specifier: SetupSpecifier = marker_helper.setup_specifier
-    if setup_specifier.config_file is None:
-        return
-
-    if not __config_uses_biss_c(setup_specifier.config_file):
-        return
-
-    for item in items:
-        if not item.get_closest_marker(BISS_C_CONFIG_MARKER):
-            continue
-
-        for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:
-            item.add_marker(
-                pytest.mark.not_valid_version_for_product(
-                    part_number=skip_product,
-                    min="2.6.0",
-                    max="2.10.0",
-                    skip_reason="Flaky test for BISS-C configuration",
-                )
-            )
-
-
 def pytest_collection_modifyitems(
     session: pytest.Session,  # noqa: ARG001
     config: pytest.Config,
@@ -166,11 +148,6 @@ def pytest_collection_modifyitems(
         config: pytest configuration.
         items: collected test items.
     """
-    # Add valid_versions_for_product markers to tests that have the biss_c_flaky marker,
-    # if the setup uses BISS-C configuration
-    # This must be done before applying firmware version markers to items,
-    # so that the valid_versions_for_product markers are applied first
-    apply_configuration_marker_to_items(config=config, items=items)
     # Apply firmware version markers to items, skipping tests that do not meet the requirements
     apply_firmware_version_markers_to_items(config=config, items=items)
 
@@ -295,7 +272,7 @@ def slice_configurations(
 
 
 @pytest.fixture(scope="session")
-def stoppable_profiler_config() -> StoppableProfilerConfig:
+def stoppable_profiler_config() -> "StoppableProfilerConfig":
     """Provide the stoppable profiler configuration for ingeniamotion.
 
     Supplies the gap thresholds required by the stoppable gaps plugin.
@@ -303,6 +280,10 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
     Returns:
         The stoppable profiler configuration.
     """
+    from summit_testing_framework.profilers.stoppable_gaps import (  # noqa: PLC0415
+        StoppableProfilerConfig,
+    )
+
     return StoppableProfilerConfig(
         gap_threshold_seconds=5.1,
         good_enough_gap_seconds=0.2,
