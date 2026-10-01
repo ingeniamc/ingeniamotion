@@ -11,7 +11,7 @@ from ingenialink import Servo
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.configuration.conditions import ConfigCondition, ConfigExpression
+from summit_testing_framework.configuration.conditions import RegisterCondition, all_of, any_of
 from summit_testing_framework.configuration.feedback_constants import (
     FeedbackSelectorRegisters,
     FeedbackSensorType,
@@ -47,34 +47,40 @@ def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
         A configuration marker that skips the test for the BISS-C configuration.
     """
     return pytest.mark.forbids_configuration(
-        expression=ConfigExpression.any_of(
-            ConfigExpression.all_of(
-                ConfigExpression.any_of(
-                    ConfigCondition(
-                        FeedbackSelectorRegisters.VELOCITY.value, FeedbackSensorType.ABS1
+        expression=any_of(
+            all_of(
+                any_of(
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.VELOCITY.value,
+                        reg_value=FeedbackSensorType.ABS1,
                     ),
-                    ConfigCondition(
-                        FeedbackSelectorRegisters.POSITION.value, FeedbackSensorType.ABS1
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.POSITION.value,
+                        reg_value=FeedbackSensorType.ABS1,
                     ),
-                    ConfigCondition(
-                        FeedbackSelectorRegisters.COMMUTATION.value, FeedbackSensorType.ABS1
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.COMMUTATION.value,
+                        reg_value=FeedbackSensorType.ABS1,
                     ),
                 ),
-                ConfigCondition("FBK_BISS1_SSI1_PROTOCOL", 0),
+                RegisterCondition("FBK_BISS1_SSI1_PROTOCOL", 0),
             ),
-            ConfigExpression.all_of(
-                ConfigExpression.any_of(
-                    ConfigCondition(
-                        FeedbackSelectorRegisters.VELOCITY.value, FeedbackSensorType.BISSC2
+            all_of(
+                any_of(
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.VELOCITY.value,
+                        reg_value=FeedbackSensorType.BISSC2,
                     ),
-                    ConfigCondition(
-                        FeedbackSelectorRegisters.POSITION.value, FeedbackSensorType.BISSC2
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.POSITION.value,
+                        reg_value=FeedbackSensorType.BISSC2,
                     ),
-                    ConfigCondition(
-                        FeedbackSelectorRegisters.COMMUTATION.value, FeedbackSensorType.BISSC2
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.COMMUTATION.value,
+                        reg_value=FeedbackSensorType.BISSC2,
                     ),
                 ),
-                ConfigCondition("FBK_SSI2_PROTOCOL", 0),
+                RegisterCondition("FBK_SSI2_PROTOCOL", 0),
             ),
         ),
         part_number=part_number,
