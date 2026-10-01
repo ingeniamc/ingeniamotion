@@ -10,7 +10,6 @@ import pytest
 from ingenialink import exceptions
 from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.servo import Servo
-from summit_testing_framework.configuration.conditions import ConfigCondition
 from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
 from summit_testing_framework.setups.descriptors import DriveHwSetup
 
@@ -283,13 +282,6 @@ def test_absolute_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.requires_configuration(
-    condition=ConfigCondition("FBK_SSI2_PROTOCOL", 1),
-    skip_reason=(
-        "Secondary SSI test is only valid when the secondary channel is "
-        "configured for SSI (not BiSS-C)."
-    ),
-)
 def test_secondary_ssi_test(
     mc,
     alias,
