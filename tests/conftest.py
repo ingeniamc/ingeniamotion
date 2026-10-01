@@ -50,7 +50,7 @@ def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
         A configuration marker that skips the test for the BISS-C configuration.
     """
     return pytest.mark.forbids_configuration(
-        expression=any_of(
+        condition=any_of(
             all_of(
                 any_of(
                     RegisterCondition(
