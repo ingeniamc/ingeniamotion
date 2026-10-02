@@ -1364,14 +1364,14 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.2.post414+pr.930.b2"
+version = "7.6.2.post447+develop.f518038"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.2.post414+pr.930.b2-py3-none-any.whl", hash = "sha256:f64e8011958f618f7f75f5e8df364a4a482ba5a5d7deae2eb9dc96efe43759d1"},
-    {file = "ingenialink-7.6.2.post414+pr.930.b2.tar.gz", hash = "sha256:52738e8ad497c7e0561e7d8c7455c26a137411af53fa8b0ceb6c1c1a0784a851"},
+    {file = "ingenialink-7.6.2.post447+develop.f518038-py3-none-any.whl", hash = "sha256:e655beed17839a6a586d615ae3b60ea9e499f057e2222dd84d8b957d4a28fd92"},
+    {file = "ingenialink-7.6.2.post447+develop.f518038.tar.gz", hash = "sha256:77ddd5a4678f3d203c1e49c11cd6d51cdbe258feeb268241703ea1a6c58c42c2"},
 ]
 
 [package.dependencies]
@@ -4413,13 +4413,13 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.3.1.post789+pr.148.b15"
+version = "0.3.1.post797+pr.151.b14"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.3.1.post789+pr.148.b15-py3-none-any.whl", hash = "sha256:ed24836becd2cfe92aaf38def252e30085c16d2e0b9bd5a351b65cc21b1a1e4e"},
+    {file = "summit_testing_framework-0.3.1.post797+pr.151.b14-py3-none-any.whl", hash = "sha256:530dcbde333bc8911b223a11220970aeec8cd073f75cf8416d1a60a217388d94"},
 ]
 
 [package.dependencies]
@@ -5116,4 +5116,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "ab61955fa24d809afc6808e43e688473214cfd4032cbf9f8c57d29f4f76b35bb"
+content-hash = "8e6b824520f294fcb93cb3874585e0140b0017c2a76379553c31f2f7e13a3874"
