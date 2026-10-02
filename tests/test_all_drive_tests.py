@@ -11,6 +11,7 @@ from ingenialink import exceptions
 from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.servo import Servo
 from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
+from summit_testing_framework.setups.descriptors import DriveHwSetup
 
 from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.base_test import TestError
@@ -36,6 +37,7 @@ from tests.conftest import refresh_registers_for_test_rollback
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
+
 
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
@@ -125,7 +127,7 @@ def test_digital_halls_test(
     servo: Servo,
     mc,
     alias,
-    feedback_list,
+    setup_descriptor: DriveHwSetup,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
@@ -139,7 +141,7 @@ def test_digital_halls_test(
         ],
     ):
         commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-        if SensorType.HALLS in feedback_list:
+        if SensorType.HALLS in setup_descriptor.available_feedbacks:
             results = mc.tests.digital_halls_test(servo=alias)
             assert results["result_severity"] == SeverityLevel.SUCCESS
         else:
@@ -162,20 +164,16 @@ def test_digital_halls_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-783",
-)
 def test_incremental_encoder_1_test(
     mc,
     alias,
-    feedback_list,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.QEI in feedback_list:
+    if SensorType.QEI in setup_descriptor.available_feedbacks:
         results = mc.tests.incremental_encoder_1_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -195,14 +193,10 @@ def test_incremental_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-784",
-)
 def test_incremental_encoder_2_test(
     mc,
     alias,
-    feedback_list,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
@@ -210,7 +204,7 @@ def test_incremental_encoder_2_test(
     if not mc.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
         pytest.skip("Incremental encoder 2 is not available")
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.QEI2 in feedback_list:
+    if SensorType.QEI2 in setup_descriptor.available_feedbacks:
         results = mc.tests.incremental_encoder_2_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -230,20 +224,16 @@ def test_incremental_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-785",
-)
 def test_absolute_encoder_1_test(
     mc,
     alias,
-    feedback_list,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.ABS1 in feedback_list:
+    if SensorType.ABS1 in setup_descriptor.available_feedbacks:
         results = mc.tests.absolute_encoder_1_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -263,20 +253,16 @@ def test_absolute_encoder_1_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-786",
-)
 def test_absolute_encoder_2_test(
     mc,
     alias,
-    feedback_list,
+    setup_descriptor: DriveHwSetup,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
     do_not_restore_registers: Collection[str],
 ):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.BISSC2 in feedback_list:
+    if SensorType.BISSC2 in setup_descriptor.available_feedbacks:
         results = mc.tests.absolute_encoder_2_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -296,13 +282,10 @@ def test_absolute_encoder_2_test(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-787",
-)
 def test_secondary_ssi_test(
     mc,
     alias,
+    setup_descriptor: DriveHwSetup,
     feedback_list,
     servo: Servo,
     registers_baseline: DriveRegistersValue,
@@ -311,7 +294,7 @@ def test_secondary_ssi_test(
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         pytest.skip("Can not run the test. Incremental encoder 1 and SSI 2 share pins.")
-    if SensorType.SSI2 in feedback_list:
+    if SensorType.SSI2 in setup_descriptor.available_feedbacks:
         results = mc.tests.secondary_ssi_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
@@ -322,7 +305,10 @@ def test_secondary_ssi_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.SSI2),),
+        accepted_changed_registers=(
+            *Phasing.ACCEPTED_CHANGED_REGISTERS,
+            _feedback_polarity_register(mc, alias, SensorType.SSI2),
+        ),
         do_not_restore_registers=do_not_restore_registers,
     )
 
@@ -330,9 +316,11 @@ def test_secondary_ssi_test(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_specifier(
-    specifier="tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E",
-    skip_reason="https://novantamotion.atlassian.net/browse/INGM-774",
+@pytest.mark.not_valid_version_for_product(
+    part_number="CAP-*",
+    min="2.6.0",
+    max="2.10.0",
+    skip_reason="Flaky test for BISS-C configuration",
 )
 def test_commutation(
     servo: Servo,
@@ -606,6 +594,8 @@ def test_phasing_check_stop(
 
 
 class TestCurrents(Enum):
+    __test__ = False
+
     RATED_CURRENT = "Rated current"
     DRIVE_CURRENT = "Drive current"
     SAME_VALUE = "Same value"

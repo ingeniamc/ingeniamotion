@@ -20,11 +20,10 @@ from summit_testing_framework.setups.specifiers import (
 )
 
 import summit_drives_ci_configs.config_files as config_files
-from tests.conftest import BISS_C_CONFIG_MARKER, RANDOM_COMBINATIONS_SLICE_KEY
+from tests.conftest import RANDOM_COMBINATIONS_SLICE_KEY
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
-
 
 ETH_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_C: RackServiceConfigSpecifier.from_version_configs(
@@ -215,8 +214,8 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.9.0": VersionConfig.from_version(
-                version="2.9.0",
+            "2.11.0": VersionConfig.from_version(
+                version="2.11.0",
                 config_file=LayeredConfig.from_xcf(
                     config_files.CAP_XCR_E_2_9_0_CONFIG
                 ).assert_feedbacks({
@@ -226,15 +225,15 @@ ECAT_SETUP = SpecifierContainer({
                     FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                     FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
                 }),
-                dictionary_type=DictionaryType.XDF_V2,
+                dictionary_type=DictionaryType.XDF_V3,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
                     RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.9.0",
-                            stage_name="EtherCAT Capitan - FW. 2.9.0",
+                            run_test_stage_uid="ethercat_capitan_2.11.0",
+                            stage_name="EtherCAT Capitan - FW. 2.11.0",
                         )
                     },
                 },
@@ -399,7 +398,7 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
             identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
+            identifier=PartNumber.CAP_XCR_E, version="2.11.0"
         ),
     ],
     extra_data={
@@ -423,20 +422,22 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         "2.11.0": VersionConfig.from_version(
             version="2.11.0",
             dictionary_type=DictionaryType.XDF_V3,
-            config_file=LayeredConfig.from_xcf(
-                config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG
-            ).assert_feedbacks({
+            config_file=LayeredConfig
+            .from_xcf(config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG)
+            .assert_feedbacks({
                 FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
-            }),
+            })
+            # Match the BiSS-C protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 0),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers=f"soem and {BISS_C_CONFIG_MARKER}",
+                        markers="soem",
                         run_test_stage_uid="ethercat_everest_s_2.11.0",
                         stage_name="SIRIUS EVS-NET-E (BiSS-C) Tests - FW. 2.11.0",
                     )
@@ -445,27 +446,32 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             feedback_configuration=FeedbackConfiguration.from_configurable(
                 abs_encoder_1_configuration=EncoderConfiguration(
                     protocol=EncoderProtocol.BIS3, resolution_bits=17
-                )
+                ),
+                abs_encoder_2_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.BIS3, resolution_bits=17
+                ),
             ),
         ),
         "2.10.0": VersionConfig.from_version(
             version="2.10.0",
             dictionary_type=DictionaryType.XDF_V3,
-            config_file=LayeredConfig.from_xcf(
-                config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG
-            ).assert_feedbacks({
+            config_file=LayeredConfig
+            .from_xcf(config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG)
+            .assert_feedbacks({
                 FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
                 FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
-            }),
+            })
+            # Match the SSI1 protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 1),
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers=f"soem and {BISS_C_CONFIG_MARKER}",  # https://novantamotion.atlassian.net/browse/INGM-798
+                        markers="soem",
                         run_test_stage_uid="ethercat_everest_s_2.10.0",
                         stage_name="SIRIUS EVS-NET-E (SSI) Tests - FW. 2.10.0",
                     )
@@ -474,7 +480,10 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             feedback_configuration=FeedbackConfiguration.from_configurable(
                 abs_encoder_1_configuration=EncoderConfiguration(
                     protocol=EncoderProtocol.SSI1, resolution_bits=17
-                )
+                ),
+                abs_encoder_2_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=10
+                ),
             ),
         ),
     },

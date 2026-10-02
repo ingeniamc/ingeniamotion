@@ -37,9 +37,13 @@ from ingeniamotion.enums import SeverityLevel
 class TestError(Exception):
     """Test error exception."""
 
+    __test__ = False
+
 
 class TestConfigurationError(TestError):
     """Test configuration exception."""
+
+    __test__ = False
 
 
 RegisterChangeProposal = dict[Register, REG_VALUE]

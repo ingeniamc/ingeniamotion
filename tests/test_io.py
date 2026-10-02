@@ -56,6 +56,10 @@ def test_set_get_gpi_polarity(mc, alias, gpi_id, polarity):
     specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
     skip_reason="https://novantamotion.atlassian.net/browse/CIT-787",
 )
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.SIRIUS_SETUP",
+    skip_reason="https://novantamotion.atlassian.net/browse/CIT-880",
+)
 def test_get_gpi_voltage_level(mc, alias, environment, setup_specifier):
     if not isinstance(
         setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)

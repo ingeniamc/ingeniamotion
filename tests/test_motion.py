@@ -16,7 +16,11 @@ from ingeniamotion.exceptions import (
     IMTimeoutError,
 )
 from ingeniamotion.motion import Motion
-from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
+from tests.conftest import (
+    forbids_biss_c_configuration,
+    mean_actual_velocity_position,
+    refresh_registers_for_test_rollback,
+)
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
@@ -621,9 +625,9 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-@pytest.mark.biss_c_flaky(
-    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
-)
+@forbids_biss_c_configuration("CAP-*")
+@forbids_biss_c_configuration("EVE-*")
+@forbids_biss_c_configuration("EVS-*")
 @pytest.mark.not_valid_for_specifier(
     specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-800",
@@ -756,9 +760,9 @@ def test_ramp_step_callback(ramp_method):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
-@pytest.mark.biss_c_flaky(
-    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
-)
+@forbids_biss_c_configuration("CAP-*")
+@forbids_biss_c_configuration("EVE-*")
+@forbids_biss_c_configuration("EVS-*")
 @pytest.mark.not_valid_for_specifier(
     specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
     skip_reason="https://novantamotion.atlassian.net/browse/INGM-814",
