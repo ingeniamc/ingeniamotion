@@ -448,7 +448,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                     protocol=EncoderProtocol.BIS3, resolution_bits=17
                 ),
                 abs_encoder_2_configuration=EncoderConfiguration(
-                    protocol=EncoderProtocol.BIS3, resolution_bits=10
+                    protocol=EncoderProtocol.BIS3, resolution_bits=17
                 ),
             ),
         ),

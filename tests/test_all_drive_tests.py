@@ -305,7 +305,10 @@ def test_secondary_ssi_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=(_feedback_polarity_register(mc, alias, SensorType.SSI2),),
+        accepted_changed_registers=(
+            *Phasing.ACCEPTED_CHANGED_REGISTERS,
+            _feedback_polarity_register(mc, alias, SensorType.SSI2),
+        ),
         do_not_restore_registers=do_not_restore_registers,
     )
 
