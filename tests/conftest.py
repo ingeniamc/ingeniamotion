@@ -19,7 +19,10 @@ from summit_testing_framework.configuration.feedback_constants import (
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
+from summit_testing_framework.setups.specifiers import (
+    DictionaryType,
+    DictionaryVersion,
+)
 
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
