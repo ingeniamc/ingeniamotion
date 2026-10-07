@@ -359,6 +359,150 @@ def test_start_pdos_for_multiple_servos_in_same_network(
     assert "PDOs are already active for this network." in warnings[0].message
 
 
+@pytest.mark.virtual
+def test_start_pdos_selects_aliases_and_subscribes_selected_callbacks(
+    mocker,
+) -> None:
+    """Test that start_pdos selects the correct aliases and subscribes the selected callbacks."""
+    mc = MotionController()
+    network = EthercatNetwork("ifname1")
+    network._ecat_master.slaves = [mocker.Mock(), mocker.Mock()]
+    mc.register_network(alias="ifname1", network=network)
+
+    selector_servo = mocker.MagicMock(spec=EthercatServo)
+    selector_servo.disconnect_event = mocker.Mock()
+    selected_servo = mocker.MagicMock(spec=EthercatServo)
+    selected_servo.disconnect_event = mocker.Mock()
+    selector_servo.slave_id = 1
+    selected_servo.slave_id = 2
+    mc.create_motion_node("selector", selector_servo, network)
+    mc.create_motion_node("selected", selected_servo, network)
+
+    activate_mock = mocker.patch.object(network, "activate_pdos")
+    send_subscription_mock = mocker.patch.object(
+        network.pdo_manager, "subscribe_to_send_process_data"
+    )
+    receive_subscription_mock = mocker.patch.object(
+        network.pdo_manager, "subscribe_to_receive_process_data"
+    )
+    exception_subscription_mock = mocker.patch.object(
+        network.pdo_manager, "subscribe_to_exceptions"
+    )
+    selector_callback = mocker.Mock()
+    selected_callback = mocker.Mock()
+    selected_receive_callback = mocker.Mock()
+    selected_exception_callback = mocker.Mock()
+    mc.capture.pdo.subscribe_to_send_process_data(selector_callback, servo="selector")
+    mc.capture.pdo.subscribe_to_send_process_data(selected_callback, servo="selected")
+    mc.capture.pdo.subscribe_to_receive_process_data(selected_receive_callback, servo="selected")
+    mc.capture.pdo.subscribe_to_exceptions(selected_exception_callback, servo="selected")
+
+    mc.capture.pdo.start_pdos(servo="selector", servos={"selected"}, refresh_rate=0.5)
+
+    activate_mock.assert_called_once_with(
+        refresh_rate=0.5, watchdog_timeout=None, selected_slave_ids={2}
+    )
+    send_subscription_mock.assert_called_once_with(selected_callback)
+    receive_subscription_mock.assert_called_once_with(selected_receive_callback)
+    exception_subscription_mock.assert_called_once_with(selected_exception_callback)
+    with pytest.raises(IMError, match="Inconsistent PDO thread configuration"):
+        mc.capture.pdo.start_pdos(servo="selector", servos={"selector"}, refresh_rate=0.5)
+    activate_mock.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_start_pdos_defaults_to_all_aliases_on_selected_network(mocker) -> None:
+    """Test that starting PDOs defaults to all aliases on the selected network."""
+    mc = MotionController()
+    network = EthercatNetwork("ifname1")
+    other_network = EthercatNetwork("ifname2")
+    network._ecat_master.slaves = [mocker.Mock(), mocker.Mock()]
+    mc.register_network(alias="ifname1", network=network)
+    mc.register_network(alias="ifname2", network=other_network)
+    for alias, selected_network, slave_id in (
+        ("selector", network, 1),
+        ("peer", network, 2),
+        ("other", other_network, 1),
+    ):
+        drive = mocker.MagicMock(spec=EthercatServo)
+        drive.disconnect_event = mocker.Mock()
+        drive.slave_id = slave_id
+        mc.create_motion_node(alias, drive, selected_network)
+
+    activate_mock = mocker.patch.object(network, "activate_pdos")
+    send_subscription_mock = mocker.patch.object(
+        network.pdo_manager, "subscribe_to_send_process_data"
+    )
+    callbacks = {alias: mocker.Mock() for alias in ("selector", "peer", "other")}
+    for alias, callback in callbacks.items():
+        mc.capture.pdo.subscribe_to_send_process_data(callback, servo=alias)
+
+    mc.capture.pdo.start_pdos(servo="selector")
+
+    activate_mock.assert_called_once_with(refresh_rate=None, watchdog_timeout=None)
+    send_subscription_mock.assert_has_calls(
+        [mocker.call(callbacks["selector"]), mocker.call(callbacks["peer"])],
+        any_order=True,
+    )
+    assert send_subscription_mock.call_count == 2
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize(
+    ("servos", "error_message"),
+    [
+        ({"missing"}, "Selected servo aliases are not connected"),
+        ({"other_network_servo"}, "must belong to network"),
+    ],
+)
+def test_start_pdos_rejects_invalid_selected_aliases_before_activation(
+    mocker, servos: set[str], error_message: str
+) -> None:
+    mc = MotionController()
+    network = EthercatNetwork("ifname1")
+    other_network = EthercatNetwork("ifname2")
+    network._ecat_master.slaves = [mocker.Mock()]
+    other_network._ecat_master.slaves = [mocker.Mock()]
+    mc.register_network(alias="ifname1", network=network)
+    mc.register_network(alias="ifname2", network=other_network)
+
+    for alias, selected_network in (
+        ("selector", network),
+        ("other_network_servo", other_network),
+    ):
+        drive = mocker.MagicMock(spec=EthercatServo)
+        drive.disconnect_event = mocker.Mock()
+        drive.slave_id = 1
+        mc.create_motion_node(alias, drive, selected_network)
+
+    activate_mock = mocker.patch.object(network, "activate_pdos")
+
+    with pytest.raises(ValueError, match=error_message):
+        mc.capture.pdo.start_pdos(servo="selector", servos=servos)
+
+    activate_mock.assert_not_called()
+    assert not mc.capture.pdo._PDONetworkManager__net_tracker.is_network_tracked("ifname1")
+
+
+@pytest.mark.virtual
+def test_start_pdos_rejects_selected_alias_without_discovered_slave(mocker) -> None:
+    mc = MotionController()
+    network = EthercatNetwork("ifname1")
+    network._ecat_master.slaves = [mocker.Mock()]
+    mc.register_network(alias="ifname1", network=network)
+    for alias, slave_id in (("selector", 1), ("missing_slave", 2)):
+        drive = mocker.MagicMock(spec=EthercatServo)
+        drive.disconnect_event = mocker.Mock()
+        drive.slave_id = slave_id
+        mc.create_motion_node(alias, drive, network)
+    activate_mock = mocker.patch.object(network, "activate_pdos")
+
+    with pytest.raises(ValueError, match="Selected slave IDs were not discovered"):
+        mc.capture.pdo.start_pdos(servo="selector", servos={"missing_slave"})
+
+    activate_mock.assert_not_called()
+
+
 def skip_if_pdo_padding_is_not_available(mc: "MotionController", alias: str) -> None:
     # Check if monitoring is available (To discard EVE-XCR-E)
     try:
