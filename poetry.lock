@@ -4756,6 +4756,7 @@ files = [
     {file = "pysoem-1.1.14.dev1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9603f444ae164d72109ec56fcbf4b856b2a2629380c6022de418ee793bb7daa"},
     {file = "pysoem-1.1.14.dev1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:5e5fffc1b31f66ffc3c68161fa2ce37d7b1d8badd5b2b7d46017a10a4f0db676"},
     {file = "pysoem-1.1.14.dev1-cp311-cp311-win_amd64.whl", hash = "sha256:29cd849e6a3d1d5b5e63d1b732f3e855cc6f13e9b2f017041c581697c69ffaf6"},
+    {file = "pysoem-1.1.14.dev1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:d0dbce8923fffa93985df8c3b66380c158daf2cb7fb7bfd49024dee80860114f"},
     {file = "pysoem-1.1.14.dev1-cp312-cp312-win_amd64.whl", hash = "sha256:d7d1b07895e54b3da359575660a2e9c673baf410bc52976a972594f7af91d425"},
     {file = "pysoem-1.1.14.dev1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6037f3e5bb7134173364184009b5d9ee7964d098b73e5cf769af73851d7cc85d"},
     {file = "pysoem-1.1.14.dev1-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:b177ba827f09d0e0a65a84edb0cd8f6ca32c903795b62a1d81288301e7a85b4f"},
