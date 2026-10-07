@@ -8,11 +8,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.network import Network
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from packaging import version
+from summit_testing_framework.setups.descriptors import EthercatMultiSlaveSetup
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
@@ -258,6 +260,58 @@ def test_start_pdos(  # noqa: C901
         # Restore the initial operation mode
         mc.motion.set_operation_mode(initial_operation_modes[a], servo=a)
         mc.capture.pdo.clear_pdo_mapping(a)
+
+
+@pytest.mark.soem_multislave
+def test_start_pdos_selected_servo_on_multislave_rack(
+    mc: "MotionController",
+    net: EthercatNetwork,
+    servo: list,
+    alias: list[str],
+    setup_descriptor: "EthercatMultiSlaveSetup",
+) -> None:
+    """Test starting PDOs for a selected servo on a multi-slave EtherCAT rack."""
+    if not isinstance(setup_descriptor, EthercatMultiSlaveSetup):
+        pytest.skip("Requires an EthercatMultiSlaveSetup instance.")
+
+    selector_alias = alias[1]
+    selected_alias = alias[0]
+    selected_servo, unselected_servo = servo[0], servo[1]
+    unselected_slave_state = unselected_servo.slave.state
+    initial_operation_mode = selected_servo.read("DRV_OP_CMD")
+    target_operation_mode = random.choice([
+        mode for mode in [0x00, 0x02, 0x03, 0x04] if mode != initial_operation_mode
+    ])
+    rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
+    tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
+    operation_mode_item = mc.capture.pdo.create_pdo_item(
+        "DRV_OP_CMD", servo=selected_alias, value=target_operation_mode
+    )
+    actual_position_item = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=selected_alias)
+    rpdo_map.add_item(operation_mode_item)
+    tpdo_map.add_item(actual_position_item)
+    mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=selected_alias)
+
+    network_alias = mc.servo_net[selected_alias]
+    try:
+        mc.capture.pdo.start_pdos(servo=selector_alias, servos={selected_alias}, refresh_rate=0.5)
+        time.sleep(2 * 0.5)
+
+        assert mc.capture.pdo.is_active(servo=selected_alias)
+        assert mc.capture.pdo.is_active(servo=selector_alias)
+        assert selected_servo.read("DRV_OP_CMD") == target_operation_mode
+        assert pytest.approx(actual_position_item.value, abs=2) == selected_servo.read(
+            "CL_POS_FBK_VALUE"
+        )
+        net._ecat_master.read_state()
+        assert selected_servo.slave.group == 1
+        assert unselected_servo.slave.group == 0
+        assert unselected_servo.slave.state == unselected_slave_state
+        assert net._ecat_master.get_expected_wkc(group=1) > 0
+    finally:
+        if mc.capture.pdo.is_active(net_alias=network_alias):
+            mc.capture.pdo.stop_pdos(servo=selector_alias)
+        mc.capture.pdo.clear_pdo_mapping(selected_alias)
 
 
 @pytest.mark.soem
@@ -619,6 +673,19 @@ class TestsPDONetworksTracker:
             self._EthercatNetwork__exceptions_in_thread = 0
             self._pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
             self._pdo_thread_status_observers = []
+
+        def activate_pdos(
+            self,
+            refresh_rate=None,
+            watchdog_timeout=None,
+            selected_slave_ids=None,
+        ):
+            self.pdo_manager.start_pdos(
+                refresh_rate=refresh_rate,
+                watchdog_timeout=watchdog_timeout,
+                selected_slave_ids=selected_slave_ids,
+            )
+            self._notify_pdo_thread_status(True)
 
     @pytest.mark.virtual
     def test_add_network_single_time(self) -> None:
