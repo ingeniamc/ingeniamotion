@@ -419,8 +419,8 @@ def test_start_pdos_selects_aliases_and_subscribes_selected_callbacks(
 ) -> None:
     """Test that start_pdos selects the correct aliases and subscribes the selected callbacks."""
     mc = MotionController()
-    network = EthercatNetwork("ifname1")
-    network._ecat_master.slaves = [mocker.Mock(), mocker.Mock()]
+    network = mocker.MagicMock(spec=EthercatNetwork)
+    network.validate_selected_slave_ids.return_value = None
     mc.register_network(alias="ifname1", network=network)
 
     selector_servo = mocker.MagicMock(spec=EthercatServo)
@@ -468,9 +468,9 @@ def test_start_pdos_selects_aliases_and_subscribes_selected_callbacks(
 def test_start_pdos_defaults_to_all_aliases_on_selected_network(mocker) -> None:
     """Test that starting PDOs defaults to all aliases on the selected network."""
     mc = MotionController()
-    network = EthercatNetwork("ifname1")
-    other_network = EthercatNetwork("ifname2")
-    network._ecat_master.slaves = [mocker.Mock(), mocker.Mock()]
+    network = mocker.MagicMock(spec=EthercatNetwork)
+    other_network = mocker.MagicMock(spec=EthercatNetwork)
+    network.validate_selected_slave_ids.return_value = None
     mc.register_network(alias="ifname1", network=network)
     mc.register_network(alias="ifname2", network=other_network)
     for alias, selected_network, slave_id in (
@@ -513,10 +513,9 @@ def test_start_pdos_rejects_invalid_selected_aliases_before_activation(
     mocker, servos: set[str], error_message: str
 ) -> None:
     mc = MotionController()
-    network = EthercatNetwork("ifname1")
-    other_network = EthercatNetwork("ifname2")
-    network._ecat_master.slaves = [mocker.Mock()]
-    other_network._ecat_master.slaves = [mocker.Mock()]
+    network = mocker.MagicMock(spec=EthercatNetwork)
+    other_network = mocker.MagicMock(spec=EthercatNetwork)
+    network.validate_selected_slave_ids.return_value = None
     mc.register_network(alias="ifname1", network=network)
     mc.register_network(alias="ifname2", network=other_network)
 
@@ -541,8 +540,10 @@ def test_start_pdos_rejects_invalid_selected_aliases_before_activation(
 @pytest.mark.virtual
 def test_start_pdos_rejects_selected_alias_without_discovered_slave(mocker) -> None:
     mc = MotionController()
-    network = EthercatNetwork("ifname1")
-    network._ecat_master.slaves = [mocker.Mock()]
+    network = mocker.MagicMock(spec=EthercatNetwork)
+    network.validate_selected_slave_ids.side_effect = ValueError(
+        "Selected slave IDs were not discovered: [2]"
+    )
     mc.register_network(alias="ifname1", network=network)
     for alias, slave_id in (("selector", 1), ("missing_slave", 2)):
         drive = mocker.MagicMock(spec=EthercatServo)
@@ -554,6 +555,7 @@ def test_start_pdos_rejects_selected_alias_without_discovered_slave(mocker) -> N
     with pytest.raises(ValueError, match="Selected slave IDs were not discovered"):
         mc.capture.pdo.start_pdos(servo="selector", servos={"missing_slave"})
 
+    network.validate_selected_slave_ids.assert_called_once_with({2})
     activate_mock.assert_not_called()
 
 
