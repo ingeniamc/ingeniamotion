@@ -43,7 +43,7 @@ ETH_SETUP = SpecifierContainer({
                 }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
+                    __EXECUTION_POLICY_KEY: "weekends",
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
@@ -66,7 +66,7 @@ ETH_SETUP = SpecifierContainer({
                 }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
+                    __EXECUTION_POLICY_KEY: "weekends",
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
@@ -299,7 +299,7 @@ CAN_SETUP = SpecifierContainer({
                 }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
+                    __EXECUTION_POLICY_KEY: "weekends",
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
@@ -322,7 +322,7 @@ CAN_SETUP = SpecifierContainer({
                 }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
+                    __EXECUTION_POLICY_KEY: "always",
                     RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
