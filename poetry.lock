@@ -2434,14 +2434,14 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.2.post506+pr.950.b9"
+version = "7.6.2.post509+pr.950.b10"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.2.post506+pr.950.b9-py3-none-any.whl", hash = "sha256:eb5e4da4b74155905e30a05f3fe165ba0d86c2938001b900367e52605bc36950"},
-    {file = "ingenialink-7.6.2.post506+pr.950.b9.tar.gz", hash = "sha256:b74f50b0af424db3ac6f4c76bbced092450ec15e6ff6a7354e2dd3955480f418"},
+    {file = "ingenialink-7.6.2.post509+pr.950.b10-py3-none-any.whl", hash = "sha256:8345c1aac31e1bae8da26d9601bca730240efcfc29a0a8690286f9eb4134ce31"},
+    {file = "ingenialink-7.6.2.post509+pr.950.b10.tar.gz", hash = "sha256:4d636ac04299bd7e3a86c502227ea50df0db38b749c73e6dcf08efee46399ce2"},
 ]
 
 [package.dependencies]
@@ -7530,4 +7530,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "1f01d6f538c607931f8642a027817c04d7285b4a59848d1e191e66ee2ab8aca5"
+content-hash = "e4deb2d6e3259599ecf06322f40af1f6e21f89d49bef7ab33050a0ee02beef57"
