@@ -118,10 +118,10 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
     wiresharkLoggingConfig: [
         default: PyTestParams.BooleanParameterDefault.TRUE_ONLY_ON_DEVELOP_BRANCH,
     ],
-    pytestTimelineConfig: [
+    timelineConfig: [
         default: PyTestParams.BooleanParameterDefault.TRUE_ONLY_ON_DEVELOP_BRANCH,
     ],
-    profilerConfig: [
+    profilersConfig: [
         default: PyTestParams.BooleanParameterDefault.TRUE_ONLY_ON_DEVELOP_BRANCH,
     ],
     checkStateScopeConfig: [
@@ -195,8 +195,8 @@ pipeline {
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel'),
-                        useTimeline: PyTestParams.readValue(params, 'pytestTimeline'),
-                        useProfiler: PyTestParams.readValue(params, 'profiler')
+                        useTimeline: PyTestParams.readValue(params, 'timeline'),
+                        useProfiler: PyTestParams.readValue(params, 'profilers')
                     )
                     def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging')
 
