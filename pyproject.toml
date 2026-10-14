@@ -88,7 +88,7 @@ twine = "==6.2.0"
 [tool.poetry.group.format]
 optional = true
 [tool.poetry.group.format.dependencies]
-ruff = "==0.16.0"
+ruff = "==0.17.0"
 
 # Dependencies for docs task
 [tool.poetry.group.docs]
@@ -121,8 +121,8 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 pytest-subtests = "==0.15.0"
 matplotlib = "==3.9.4"
-summit-testing-framework = {version = "0.3.1.post843+develop.7d58fec"}
-ingenialink = {version = "7.6.2.post509+pr.950.b10"}
+summit-testing-framework = {version = "0.3.1.post855+develop.09458c1"}
+ingenialink = {version = "7.6.2.post538+pr.950.b12"}
 virtual_drive = {version = "0.1.1.post345+develop.ce01ac3"}
 
 # -----------------------------------------------------------------------

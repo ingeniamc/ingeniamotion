@@ -1,6 +1,6 @@
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
@@ -195,7 +195,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     @contextmanager
     def run_context(
         self, registers_baseline: Optional[DriveRegistersValue] = None
-    ) -> Iterator[None]:
+    ) -> Generator[None, None, None]:
         """Run the test setup and keep the drive configured until context exit.
 
         Args:
