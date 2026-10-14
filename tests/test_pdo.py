@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.ethercat.slave_group import EthercatSlaveGroup
 from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.network import Network
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
@@ -420,7 +421,6 @@ def test_start_pdos_selects_aliases_and_subscribes_selected_callbacks(
     """Test that start_pdos selects the correct aliases and subscribes the selected callbacks."""
     mc = MotionController()
     network = mocker.MagicMock(spec=EthercatNetwork)
-    network.validate_selected_slave_ids.return_value = None
     mc.register_network(alias="ifname1", network=network)
 
     selector_servo = mocker.MagicMock(spec=EthercatServo)
@@ -454,7 +454,9 @@ def test_start_pdos_selects_aliases_and_subscribes_selected_callbacks(
     mc.capture.pdo.start_pdos(servo="selector", servos={"selected"}, refresh_rate=0.5)
 
     activate_mock.assert_called_once_with(
-        refresh_rate=0.5, watchdog_timeout=None, selected_slave_ids={2}
+        refresh_rate=0.5,
+        watchdog_timeout=None,
+        group=EthercatSlaveGroup([selected_servo]),
     )
     send_subscription_mock.assert_called_once_with(selected_callback)
     receive_subscription_mock.assert_called_once_with(selected_receive_callback)
@@ -470,7 +472,6 @@ def test_start_pdos_defaults_to_all_aliases_on_selected_network(mocker) -> None:
     mc = MotionController()
     network = mocker.MagicMock(spec=EthercatNetwork)
     other_network = mocker.MagicMock(spec=EthercatNetwork)
-    network.validate_selected_slave_ids.return_value = None
     mc.register_network(alias="ifname1", network=network)
     mc.register_network(alias="ifname2", network=other_network)
     for alias, selected_network, slave_id in (
@@ -515,7 +516,6 @@ def test_start_pdos_rejects_invalid_selected_aliases_before_activation(
     mc = MotionController()
     network = mocker.MagicMock(spec=EthercatNetwork)
     other_network = mocker.MagicMock(spec=EthercatNetwork)
-    network.validate_selected_slave_ids.return_value = None
     mc.register_network(alias="ifname1", network=network)
     mc.register_network(alias="ifname2", network=other_network)
 
@@ -541,7 +541,7 @@ def test_start_pdos_rejects_invalid_selected_aliases_before_activation(
 def test_start_pdos_rejects_selected_alias_without_discovered_slave(mocker) -> None:
     mc = MotionController()
     network = mocker.MagicMock(spec=EthercatNetwork)
-    network.validate_selected_slave_ids.side_effect = ValueError(
+    network.validate_slave_group.side_effect = ValueError(
         "Selected slave IDs were not discovered: [2]"
     )
     mc.register_network(alias="ifname1", network=network)
@@ -552,10 +552,12 @@ def test_start_pdos_rejects_selected_alias_without_discovered_slave(mocker) -> N
         mc.create_motion_node(alias, drive, network)
     activate_mock = mocker.patch.object(network, "activate_pdos")
 
+    missing_slave = mc._get_drive(servo="missing_slave")
+    group = EthercatSlaveGroup([missing_slave])
     with pytest.raises(ValueError, match="Selected slave IDs were not discovered"):
         mc.capture.pdo.start_pdos(servo="selector", servos={"missing_slave"})
 
-    network.validate_selected_slave_ids.assert_called_once_with({2})
+    network.validate_slave_group.assert_called_once_with(group)
     activate_mock.assert_not_called()
 
 
@@ -680,12 +682,12 @@ class TestsPDONetworksTracker:
             self,
             refresh_rate=None,
             watchdog_timeout=None,
-            selected_slave_ids=None,
+            group=None,
         ):
             self.pdo_manager.start_pdos(
                 refresh_rate=refresh_rate,
                 watchdog_timeout=watchdog_timeout,
-                selected_slave_ids=selected_slave_ids,
+                group=group,
             )
             self._notify_pdo_thread_status(True)
 
