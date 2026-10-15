@@ -32,6 +32,70 @@ def test_fsoe_master_not_installed() -> None:
         mc.fsoe
 
 
+@pytest.mark.virtual
+@pytest.mark.skipif(not FSOE_MASTER_INSTALLED, reason="fsoe_master is not installed")
+@pytest.mark.parametrize(
+    ("start_with_configure", "start_master"),
+    [(False, True), (True, True), (True, False)],
+)
+def test_fsoe_pdo_lifecycle_groups_handlers_by_network(
+    mocker: "MockerFixture", start_with_configure: bool, start_master: bool
+) -> None:
+    mc = MotionController()
+    fsoe = mc.fsoe
+    networks = {"a": mocker.Mock(), "b": mocker.Mock(), "c": mocker.Mock()}
+    for network_alias, network in (("net1", networks["a"]), ("net2", networks["c"])):
+        mc.register_network(network_alias, network)
+    for alias, network in (("a", networks["a"]), ("b", networks["a"]), ("c", networks["c"])):
+        servo = mocker.Mock()
+        servo.dictionary = mocker.Mock(subnodes=[])
+        servo.disconnect_event = mocker.Mock()
+        mc.create_motion_node(alias, servo, network)
+
+    handlers = {}
+    for alias in networks:
+        handler = mocker.Mock()
+        handler.running = True
+        handler.watchdog_timeout = 0.0
+        fsoe._handlers[alias] = handler
+        handlers[alias] = handler
+
+    start_pdos = mocker.patch.object(mc.capture.pdo, "start_pdos")
+    stop_pdos = mocker.patch.object(mc.capture.pdo, "stop_pdos")
+    if start_with_configure:
+        fsoe.configure_pdos(start_pdos=True, start_master=start_master)
+        for handler in handlers.values():
+            handler.configure_pdo_maps.assert_called_once_with()
+            handler.set_pdo_maps_to_slave.assert_called_once_with()
+    else:
+        fsoe.start_master(start_pdos=True)
+    handlers_started = start_master or not start_with_configure
+
+    expected_start_calls = [
+        mocker.call(servo="a", servos={"a", "b"}),
+        mocker.call(servo="c", servos={"c"}),
+    ]
+    start_pdos.assert_has_calls(expected_start_calls, any_order=True)
+    assert start_pdos.call_count == 2
+    for handler in handlers.values():
+        if handlers_started:
+            handler.start.assert_called_once_with()
+        else:
+            handler.start.assert_not_called()
+        handler.running = handlers_started
+
+    fsoe.stop_master(stop_pdos=True)
+
+    expected_stop_calls = [mocker.call(servo="a"), mocker.call(servo="c")]
+    stop_pdos.assert_has_calls(expected_stop_calls, any_order=True)
+    assert stop_pdos.call_count == 2
+    for handler in handlers.values():
+        if handlers_started:
+            handler.stop.assert_called_once_with()
+        else:
+            handler.stop.assert_not_called()
+
+
 @pytest.mark.fsoe
 def test_start_and_stop_multiple_times(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
