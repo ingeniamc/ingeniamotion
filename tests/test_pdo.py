@@ -609,7 +609,7 @@ def test_subscribe_exceptions(servo: "Servo", mc: "MotionController", alias: str
     with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
         error_msg = "Test error"
 
-        def start_pdos(*_):
+        def start_pdos(*_args, **_kwargs):
             raise ILWrongWorkingCountError(error_msg)
 
         mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")
