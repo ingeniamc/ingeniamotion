@@ -195,10 +195,10 @@ pipeline {
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel'),
-                        useTimeline: PyTestParams.readValue(params, 'timeline'),
-                        useProfilers: PyTestParams.readValue(params, 'profilers')
+                        useTimeline: PyTestParams.readValue(params, 'timeline', env, currentBuild),
+                        useProfilers: PyTestParams.readValue(params, 'profilers', env, currentBuild)
                     )
-                    def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging')
+                    def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
 
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
