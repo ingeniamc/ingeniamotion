@@ -274,7 +274,11 @@ pipeline {
                                 stage('Check Dependencies') {
                                     steps {
                                         script {
-                                            checkDependencies(excludeManagers: ['poetry:tests'])
+                                            def excludeManagers = ['poetry:tests']
+                                            if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith('release/')) {
+                                                excludeManagers.add('jenkins_shared_library')
+                                            }
+                                            checkDependencies(excludeManagers: excludeManagers)
                                         }
                                     }
                                 }
