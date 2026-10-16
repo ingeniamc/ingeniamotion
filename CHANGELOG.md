@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.10.5] - 2026-10-15
+## [0.10.5] - 2026-10-16
 ### Added
 - Add SDCP servo support.
 - Add `Axis.feedbacks` (`AxisFeedbacks`), a typed API for configuring and accessing an axis's feedback slots.
