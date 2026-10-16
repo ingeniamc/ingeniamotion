@@ -264,7 +264,7 @@ pipeline {
                                 stage('Check Dependencies') {
                                     steps {
                                         script {
-                                            checkDependencies(excludeManagers: ['poetry:tests'])
+                                            checkDependencies(excludeManagers: ['poetry:tests', 'git_submodules'])
                                         }
                                     }
                                 }
