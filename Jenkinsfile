@@ -43,19 +43,20 @@ def withGithubCredentials = { Closure body ->
         sshUserPrivateKey(
             credentialsId: GITHUB_SSH_CREDENTIALS_ID,
             keyFileVariable: 'GITHUB_SSH_KEY'
-        ),
-        gitUsernamePassword(
-            credentialsId: GITHUB_HTTPS_CREDENTIALS_ID,
-            gitToolName: 'Default'
         )
     ]) {
-        sh "cp \"\$GITHUB_SSH_KEY\" ${LIN_DOCKER_TMP_PATH}/.github_ssh_key && chmod 600 ${LIN_DOCKER_TMP_PATH}/.github_ssh_key"
-        try {
-            withEnv(["GIT_SSH_COMMAND=ssh -i ${LIN_DOCKER_TMP_PATH}/.github_ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"]) {
-                body()
-            }
-        } finally {
-            sh "rm -f ${LIN_DOCKER_TMP_PATH}/.github_ssh_key"
+        def sshKeyPath = env.GITHUB_SSH_KEY.replace('\\', '/')
+        withEnv([
+            // Use Jenkins' SSH key for GitHub and avoid prompts during clone.
+            "GIT_SSH_COMMAND=ssh -i \"${sshKeyPath}\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no",
+            // Rewrite GitHub HTTPS dependency URLs to SSH so the key is used.
+            'GIT_CONFIG_COUNT=1',
+            'GIT_CONFIG_KEY_0=url.git@github.com:.insteadOf',
+            'GIT_CONFIG_VALUE_0=https://github.com/',
+            // Make Poetry use system Git, which honors the settings above.
+            'POETRY_SYSTEM_GIT_CLIENT=true',
+        ]) {
+            body()
         }
     }
 }
