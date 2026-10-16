@@ -34,6 +34,32 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 /* List of markers that require hardware */
 def HARDWARE_MARKERS = ["ethernet", "soem", "soem_multislave", "canopen", "fsoe", "fsoe_phase2"]
 
+/* GitHub credentials for SSH and HTTPS access */
+def GITHUB_SSH_CREDENTIALS_ID = 'GithubSSH'
+def GITHUB_HTTPS_CREDENTIALS_ID = 'IngeniaJenkinsGitHub'
+
+def withGithubCredentials = { Closure body ->
+    withCredentials([
+        sshUserPrivateKey(
+            credentialsId: GITHUB_SSH_CREDENTIALS_ID,
+            keyFileVariable: 'GITHUB_SSH_KEY'
+        ),
+        gitUsernamePassword(
+            credentialsId: GITHUB_HTTPS_CREDENTIALS_ID,
+            gitToolName: 'Default'
+        )
+    ]) {
+        sh "cp \"\$GITHUB_SSH_KEY\" ${LIN_DOCKER_TMP_PATH}/.github_ssh_key && chmod 600 ${LIN_DOCKER_TMP_PATH}/.github_ssh_key"
+        try {
+            withEnv(["GIT_SSH_COMMAND=ssh -i ${LIN_DOCKER_TMP_PATH}/.github_ssh_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"]) {
+                body()
+            }
+        } finally {
+            sh "rm -f ${LIN_DOCKER_TMP_PATH}/.github_ssh_key"
+        }
+    }
+}
+
 VEnvManager venvManager = new VEnvManager(
     pipeline: this,
     default_python_version: DEFAULT_PYTHON_VERSION,
@@ -213,7 +239,10 @@ pipeline {
 
                     // Create a minimal virtual environment for specifier export and test collection
                     venvManager.copyToWorkingFolder()
-                    venvManager.createPoetryEnvironment()
+
+                    withGithubCredentials {
+                        venvManager.createPoetryEnvironment()
+                    }
 
                     // Export specifiers and populate TestGroup sessions (policy + uid-regex evaluated here).
                     testManager.buildTestSessions("tests.setups.rack_specifiers")
@@ -278,10 +307,12 @@ pipeline {
                                 stage('Create virtual environments') {
                                     steps {
                                         script {
-                                            venvManager.createPoetryEnvironments(
-                                                pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
-                                                installCommand: "poetry sync --all-groups --extras fsoe"
-                                            )
+                                            withGithubCredentials {
+                                                venvManager.createPoetryEnvironments(
+                                                    pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                                    installCommand: "poetry sync --all-groups --extras fsoe"
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -323,10 +354,12 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                            installCommand: "poetry sync --all-groups --extras fsoe"
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -427,10 +460,12 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(ECAT_TESTS.baseTestSession.runInVirtualEnvs),
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(ECAT_TESTS.baseTestSession.runInVirtualEnvs),
+                                            installCommand: "poetry sync --all-groups --extras fsoe"
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -458,10 +493,12 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(SIRIUS_TESTS.baseTestSession.runInVirtualEnvs),
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(SIRIUS_TESTS.baseTestSession.runInVirtualEnvs),
+                                            installCommand: "poetry sync --all-groups --extras fsoe"
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -492,9 +529,11 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(HW_TEST_SESSIONS.runInVirtualEnvs),
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(HW_TEST_SESSIONS.runInVirtualEnvs),
+                                        )
+                                    }
                                 }
                             }
                         }
