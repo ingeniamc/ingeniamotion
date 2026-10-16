@@ -564,9 +564,11 @@ pipeline {
                 script {
                     def coverage_files = testManager.getCoverageFiles()
                     venvManager.copyToWorkingFolder()
-                    venvManager.createPoetryEnvironment(
-                        installCommand: "poetry sync --all-groups --extras fsoe"
-                    )
+                    withGithubCredentials {
+                        venvManager.createPoetryEnvironment(
+                            installCommand: "poetry sync --all-groups --extras fsoe"
+                        )
+                    }
                     if (coverage_files) {
                         venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
                             venv.run("poetry run poe cov-combine -- ${coverage_files.join(' ')}")
