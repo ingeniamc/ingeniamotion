@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 
@@ -165,17 +165,32 @@ def pdo_thread_error_tracker(mc: "MotionController") -> Iterator[list[Exception]
 
 @pytest.mark.fsoe
 def test_configure_pdos_without_starting_master(
-    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
-    pdo_thread_error_tracker: list[Exception],
+    mocker: "MockerFixture",
 ) -> None:
-    """If master has not started, PDOs will fail in the first request."""
-    mc, _ = mc_with_fsoe_with_sra
+    """Reject starting PDOs before the configured FSoE master handler is running."""
+    mc = mocker.Mock()
+    fsoe = FSoEMaster(mc)
+    fsoe._handlers["servo"] = mocker.Mock(running=False)
+    start_pdos = mc.capture.pdo.start_pdos
 
-    assert len(pdo_thread_error_tracker) == 0
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=False)
-    time.sleep(1.0)
-    assert len(pdo_thread_error_tracker) == 1
-    assert "FSoE Master is not running" in str(pdo_thread_error_tracker[0])
+    with pytest.raises(RuntimeError, match="before all FSoE master handlers are running"):
+        fsoe.configure_pdos(start_pdos=True, start_master=False)
+
+    start_pdos.assert_not_called()
+
+
+@pytest.mark.fsoe
+def test_configure_pdos_with_running_master(mocker: "MockerFixture") -> None:
+    """Allow PDO startup when the FSoE master handler is already running."""
+    mc = mocker.Mock()
+    fsoe = FSoEMaster(mc)
+    fsoe._handlers["servo"] = mocker.Mock(running=True)
+    configure_pdo_maps = mocker.patch.object(fsoe, "_configure_and_set_pdo_maps_to_slaves")
+
+    fsoe.configure_pdos(start_pdos=True, start_master=False)
+
+    configure_pdo_maps.assert_called_once_with()
+    mc.capture.pdo.start_pdos.assert_called_once_with(servo="servo")
 
 
 @pytest.mark.fsoe
