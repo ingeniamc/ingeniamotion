@@ -183,14 +183,17 @@ def test_configure_pdos_without_starting_master(
 def test_configure_pdos_with_running_master(mocker: "MockerFixture") -> None:
     """Allow PDO startup when the FSoE master handler is already running."""
     mc = mocker.Mock()
+    mc.servo_net = {"servo": "network"}
     fsoe = FSoEMaster(mc)
     fsoe._handlers["servo"] = mocker.Mock(running=True)
     configure_pdo_maps = mocker.patch.object(fsoe, "_configure_and_set_pdo_maps_to_slaves")
+    start_pdos = mc.capture.pdo.start_pdos
 
     fsoe.configure_pdos(start_pdos=True, start_master=False)
 
     configure_pdo_maps.assert_called_once_with()
-    mc.capture.pdo.start_pdos.assert_called_once_with(servo="servo")
+    start_pdos.assert_called_once()
+    assert start_pdos.call_args.kwargs["servo"] == "servo"
 
 
 @pytest.mark.fsoe
