@@ -701,7 +701,7 @@ def test_map_safety_input_output_random(
     no_error_tracker: None,  # ruff: ignore[unused-function-argument]
     mcu_error_queue_a: "ServoErrorQueue",
     mcu_error_queue_b: "ServoErrorQueue",
-    iteration: int,  # noqa: ARG001
+    iteration: int,
 ) -> None:
     """Tests that random combinations of inputs and outputs are valid."""
     mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
