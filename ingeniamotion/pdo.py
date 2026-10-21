@@ -323,14 +323,11 @@ class PDONetworksTracker:
                 watchdog_timeout=watchdog_timeout,
                 group=group,
             )
-            if group is None:
-                network.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
-            else:
-                network.activate_pdos(
-                    refresh_rate=refresh_rate,
-                    watchdog_timeout=watchdog_timeout,
-                    group=group,
-                )
+            network.activate_pdos(
+                refresh_rate=refresh_rate,
+                watchdog_timeout=watchdog_timeout,
+                group=group,
+            )
             return
         if not self.__networks[alias].compare_configuration(
             refresh_rate=refresh_rate,
