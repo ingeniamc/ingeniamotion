@@ -1,19 +1,19 @@
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class PhasingCheck(BaseTest[LegacyDictReportType]):
+class PhasingCheck(BaseTest[ReportBase]):
     """Phasing check test class."""
 
     MAX_ALLOWED_ANGLE_MOVE = 15
@@ -25,19 +25,13 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-    ]
-
     class ResultType(IntEnum):
         """Test result."""
 
         SUCCESS = 0
         WRONG_PHASING = -1
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Motor is well phased.",
         ResultType.WRONG_PHASING: "Phasing check failed. Wrong motor phasing.",
     }
@@ -57,7 +51,6 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
-        self.backup_registers_names = self.BACKUP_REGISTERS
 
     @override
     @BaseTest.stoppable
@@ -73,9 +66,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             f"Slowly increasing Current Direct Set-point until {current_sign * max_current} A"
         )
         init_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
-        pos_resolution = self.mc.configuration.get_position_feedback_resolution(
-            servo=self.servo, axis=self.axis
-        )
+        pos_resolution = self._axis_feedbacks.position.get_encoder().get_resolution()
         total_time = max_current / self.CURRENT_SLOPE
         try:
             for value in self.mc.motion.ramp_generator(
@@ -119,9 +110,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         if not isinstance(pha_accuracy, int):
             raise TypeError(f"{self.PHASING_ACCURACY_REGISTER} has to be an integer")
         delta = 3 * pha_accuracy / 1000
-        ref_feedback = self.mc.configuration.get_reference_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        ref_feedback = self._axis_feedbacks.reference.get_encoder_type()
 
         num_of_steps = 1
         if ref_feedback == SensorType.HALLS:
@@ -184,12 +173,9 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         if not isinstance(phasing_current, float):
             raise TypeError(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer")
         max_test_current = round(phasing_current, 2)
-        ref_feedback = self.mc.configuration.get_reference_feedback(
-            servo=self.servo, axis=self.axis
-        )
-        comm_feedback = self.mc.configuration.get_commutation_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        configuration = self._axis_feedbacks.get_configuration()
+        ref_feedback = configuration.encoder_at(self._axis_feedbacks.reference).SENSOR_TYPE
+        comm_feedback = configuration.encoder_at(self._axis_feedbacks.commutation).SENSOR_TYPE
 
         # With Halls only, this test makes no sense
         if ref_feedback == SensorType.HALLS and comm_feedback == SensorType.HALLS:

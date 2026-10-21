@@ -1,74 +1,101 @@
 import logging
 import time
 from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
 
 import numpy as np
 import pytest
+from ingenialink import Servo
 from ingenialink.dictionary import Interface
+from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
+from summit_testing_framework.configuration.conditions import RegisterCondition, all_of, any_of
+from summit_testing_framework.configuration.feedback_constants import (
+    FeedbackSelectorRegisters,
+    FeedbackSensorType,
+)
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
+from summit_testing_framework.setups.specifiers import (
+    DictionaryType,
+    DictionaryVersion,
+)
+
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
+    from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
+
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
     from ingeniamotion.motion_node import MotionNode
 
-
-def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.
-
-    Returns:
-        The decorated function with the markers applied.
-    """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    return func
+logger = logging.getLogger(__name__)
 
 
-def not_valid_for_all_eve_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for all EVE products.
+# Fraction of exhaustive test configurations to run in shorter daytime test sessions.
+RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
+
+
+def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
+    """Create a marker for tests that are flaky with a BISS-C configuration.
+
+    Args:
+        part_number: Part-number pattern to which the marker applies.
 
     Returns:
-        The decorated function with the markers applied.
+        A configuration marker that skips the test for the BISS-C configuration.
     """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
+    return pytest.mark.forbids_configuration(
+        condition=any_of(
+            all_of(
+                any_of(
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.VELOCITY.value,
+                        reg_value=FeedbackSensorType.ABS1,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.POSITION.value,
+                        reg_value=FeedbackSensorType.ABS1,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.COMMUTATION.value,
+                        reg_value=FeedbackSensorType.ABS1,
+                    ),
+                ),
+                RegisterCondition("FBK_BISS1_SSI1_PROTOCOL", 0),
+            ),
+            all_of(
+                any_of(
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.VELOCITY.value,
+                        reg_value=FeedbackSensorType.BISSC2,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.POSITION.value,
+                        reg_value=FeedbackSensorType.BISSC2,
+                    ),
+                    RegisterCondition(
+                        reg_uid=FeedbackSelectorRegisters.COMMUTATION.value,
+                        reg_value=FeedbackSensorType.BISSC2,
+                    ),
+                ),
+                RegisterCondition("FBK_SSI2_PROTOCOL", 0),
+            ),
+        ),
+        part_number=part_number,
+        min="2.6.0",
+        max="2.10.0",
+        skip_reason="Flaky test for BISS-C configuration, solved in 2.11.0",
     )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.ETH])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.ETH])(
-        func
-    )
-    return func
 
 
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
+    "summit_testing_framework.pytest_markers",
     "summit_testing_framework.setup_fixtures",
     "summit_testing_framework.profilers.stoppable_gaps",
 ]
@@ -124,6 +151,7 @@ def pytest_collection_modifyitems(
         config: pytest configuration.
         items: collected test items.
     """
+    # Apply firmware version markers to items, skipping tests that do not meet the requirements
     apply_firmware_version_markers_to_items(config=config, items=items)
 
 
@@ -223,8 +251,31 @@ def timeout_loop(
         iteration += 1
 
 
+ConfigurationT = TypeVar("ConfigurationT")
+
+
+def slice_configurations(
+    configurations: list[ConfigurationT], setup_specifier
+) -> list[ConfigurationT]:
+    """Return the configured fraction of test configurations.
+
+    Args:
+        configurations: Randomized test configurations.
+        setup_specifier: Active test setup specifier.
+
+    Returns:
+        All configurations when no slice is configured, otherwise the configured
+        fraction with at least one configuration.
+    """
+    assert configurations, "At least one test configuration is required"
+    configuration_slice = setup_specifier.extra_data.get(RANDOM_COMBINATIONS_SLICE_KEY, None)
+    if configuration_slice is None:
+        return configurations
+    return configurations[: max(1, int(len(configurations) * configuration_slice))]
+
+
 @pytest.fixture(scope="session")
-def stoppable_profiler_config() -> StoppableProfilerConfig:
+def stoppable_profiler_config() -> "StoppableProfilerConfig":
     """Provide the stoppable profiler configuration for ingeniamotion.
 
     Supplies the gap thresholds required by the stoppable gaps plugin.
@@ -232,7 +283,49 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
     Returns:
         The stoppable profiler configuration.
     """
+    from summit_testing_framework.profilers.stoppable_gaps import (  # noqa: PLC0415
+        StoppableProfilerConfig,
+    )
+
     return StoppableProfilerConfig(
-        gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
-        good_enough_gap_seconds=2.6,
+        gap_threshold_seconds=5.1,
+        good_enough_gap_seconds=0.2,
+    )
+
+
+@contextmanager
+def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
+    """Refresh stale registers if drive context manager
+
+    Some mechanisms of the drive might not be detected by the drive context manager
+    and the drive might not be rolled back to the initial state after test execution.
+    Using this context manager on a test will force a read after test execution
+    to avoid any register change leak
+
+    Args:
+        servo: Servo instance to read registers from.
+        register_uids: List of register UIDs to read after test execution.
+    """
+    yield
+    for register_uid in register_uids:
+        try:
+            servo.read(register_uid)
+        except ILRegisterNotFoundError:  # noqa: PERF203
+            logger.warning(
+                f"Register {register_uid} not found during refresh after test execution."
+            )
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph1_xdfv3_dictionary() -> Path:
+    return Path(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph2_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "EVS-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
     )

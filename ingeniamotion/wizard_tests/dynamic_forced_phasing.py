@@ -113,26 +113,6 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     CURRENT_RAMP_TIME_S: Final[float] = 1.0
     """Time in seconds to ramp the current to the phasing max current."""
 
-    BACKUP_REGISTERS: Final[list[str]] = [
-        COMMUTATION_ANGLE_OFFSET_REGISTER,
-        REFERENCE_ANGLE_OFFSET_REGISTER,
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-        "FBK_GEN_MODE",
-        "FBK_GEN_FREQ",
-        "FBK_GEN_GAIN",
-        "FBK_GEN_OFFSET",
-        "FBK_GEN_CYCLES",
-        "COMMU_ANGLE_SENSOR",
-        "COMMU_PHASING_MAX_CURRENT",
-        "COMMU_PHASING_TIMEOUT",
-        "COMMU_PHASING_ACCURACY",
-        "COMMU_PHASING_MODE",
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
-    ]
-
     def __init__(
         self,
         mc: "MotionController",
@@ -146,7 +126,6 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.__monitoring: Optional[Monitoring] = None
         if logger_drive_name is None:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
@@ -164,7 +143,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @property
     def monitoring(self) -> "Monitoring":
-        """Get the monitoring object.
+        """The monitoring object.
 
         Raises:
             ValueError: If the monitoring has not been configured yet.
@@ -210,21 +189,19 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             raise TestError(e)
         self.__resolve_phasing_max_current()
 
-        comm = self.mc.configuration.get_commutation_feedback(servo=self.servo, axis=self.axis)
-        ref = self.mc.configuration.get_reference_feedback(servo=self.servo, axis=self.axis)
+        configuration = self._axis_feedbacks.get_configuration()
+        comm = configuration.encoder_at(self._axis_feedbacks.commutation)
+        ref = configuration.encoder_at(self._axis_feedbacks.reference)
 
-        if ref == SensorType.INTGEN or comm == SensorType.INTGEN:
+        if ref.SENSOR_TYPE == SensorType.INTGEN or comm.SENSOR_TYPE == SensorType.INTGEN:
             raise TestError(
                 "Reference or commutation feedback sensor are set to internal generator"
             )
 
-        if (
-            self.mc.configuration.get_reference_feedback_category(servo=self.servo, axis=self.axis)
-            != SensorCategory.ABSOLUTE
-        ):
+        if ref.CATEGORY != SensorCategory.ABSOLUTE:
             raise TestError("Reference feedback sensor is not absolute")
 
-        if comm != ref:
+        if comm.SENSOR_TYPE != ref.SENSOR_TYPE:
             raise TestError("Commutation and reference feedback sensors are not the same.")
 
     @BaseTest.stoppable
@@ -493,7 +470,12 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             f"Increasing direct current to {self.phasing_max_current:.4f} A", axis=self.axis
         )
         self.mc.motion.current_direct_ramp(
-            self.phasing_max_current, self.CURRENT_RAMP_TIME_S, servo=self.servo, axis=self.axis
+            self.phasing_max_current,
+            self.CURRENT_RAMP_TIME_S,
+            servo=self.servo,
+            axis=self.axis,
+            interval=0.01,
+            step=self.check_stop,
         )
 
         mean_difference_pos = self._collect_mean_difference(
@@ -521,9 +503,28 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         else:
             msg = "Success"
 
+        servo_dictionary = self._get_servo().dictionary
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_ANGLE_OFFSET", axis=self.axis),
+            commutation_angle,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_ANGLE_REF_OFFSET", axis=self.axis),
+            commutation_angle,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MODE", axis=self.axis),
+            int(PhasingMode.NO_PHASING),
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MAX_CURRENT", axis=self.axis),
+            self.phasing_max_current,
+        )
+
         return DynamicForcedPhasingReport(
             result_severity=severity,
             result_message=msg,
+            suggested_registers=self.suggested_registers,
             commutation_angle=commutation_angle,
             commutation_phasing_mode=PhasingMode.NO_PHASING,
             phasing_max_current=self.phasing_max_current,

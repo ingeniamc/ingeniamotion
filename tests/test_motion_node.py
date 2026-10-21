@@ -1,6 +1,7 @@
 import pytest
 from ingenialink.dictionary import SubnodeType
 
+from ingeniamotion.capture import MotionNodeCapture
 from ingeniamotion.motion_node import MotionNode
 
 
@@ -48,3 +49,10 @@ def test_axes_created_for_multi_axis_dictionary(mocker, servo, net):
     # Test KeyError for non-existent axis
     with pytest.raises(KeyError):
         motion_node.get_axis(3)
+
+
+@pytest.mark.virtual
+def test_capture_is_cached(motion_node):
+    """Test that a motion node returns the same capture object each time."""
+    assert motion_node.capture is motion_node.capture
+    assert isinstance(motion_node.capture, MotionNodeCapture)

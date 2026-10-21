@@ -1,7 +1,7 @@
 import sys
 import time
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError, ILTimeoutError
@@ -39,6 +39,8 @@ class Motion:
 
     STATUS_WORD_TARGET_REACHED_BIT = 0x800
     CONTROL_WORD_TARGET_LATCH_BIT = 0x200
+    TARGET_LATCH_TIMEOUT_S = 0.1
+    TARGET_LATCH_POLL_INTERVAL_S = 0.01
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -53,7 +55,29 @@ class Motion:
 
         Raises:
             TypeError: If some read value has a wrong type.
+            IMTimeoutError: If the target latch control bit does not change state in time.
 
+        """
+        control_word = self.clear_target_latch(servo=servo, axis=axis)
+        new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
+        self.mc.communication.set_register(
+            self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
+        )
+        self._wait_for_target_latch_bit(bit_set=True, servo=servo, axis=axis)
+
+    def clear_target_latch(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+        """Clear the target latch.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+
+        Returns:
+            int: The value of the control word register after clearing the target latch bit.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+            IMTimeoutError: If the target latch control bit does not clear in time.
         """
         control_word = self.mc.communication.get_register(
             self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
@@ -64,9 +88,22 @@ class Motion:
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
         )
-        new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
-        self.mc.communication.set_register(
-            self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
+        return self._wait_for_target_latch_bit(bit_set=False, servo=servo, axis=axis)
+
+    def _wait_for_target_latch_bit(self, bit_set: bool, servo: str, axis: int) -> int:
+        deadline = time.monotonic() + self.TARGET_LATCH_TIMEOUT_S
+        while time.monotonic() < deadline:
+            control_word = self.mc.communication.get_register(
+                self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
+            )
+            if not isinstance(control_word, int):
+                raise TypeError("Control word register value has to be a integer")
+            if bool(control_word & self.CONTROL_WORD_TARGET_LATCH_BIT) == bit_set:
+                return control_word
+            time.sleep(self.TARGET_LATCH_POLL_INTERVAL_S)
+        state = "set" if bit_set else "clear"
+        raise IMTimeoutError(
+            f"Target latch control bit did not {state} within {self.TARGET_LATCH_TIMEOUT_S} seconds"
         )
 
     def set_operation_mode(
@@ -147,28 +184,39 @@ class Motion:
         """
         drive = self.mc._get_drive(servo)
         num_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
+        baseline_error_code, baseline_subnode, baseline_warning = (
+            self.mc.errors.get_last_buffer_error(servo=servo, axis=axis)
+        )
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            timeout = error_timeout
-            start_time = time.time()
-            error_raised = False
-            while not error_raised and (time.time() < (start_time + timeout)):
-                error_raised = (
-                    self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
-                )
-            if error_raised:
-                error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
+            deadline = time.time() + error_timeout
+            error_code = 0
+            while time.time() < deadline and error_code == 0:
+                current_error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                     servo=servo, axis=axis
                 )
-                _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
-                if sys.version_info >= (3, 11):
-                    # Adds a note to the exception with the error last error message from the queues
-                    # Only available in Python 3.11+ (add_note method)
-                    e.add_note(f"Error message: {error_msg}")
-            else:
+                if current_error_code != 0 and (current_error_code, _subnode, _warning) != (
+                    baseline_error_code,
+                    baseline_subnode,
+                    baseline_warning,
+                ):
+                    error_code = current_error_code
+                    continue
+                current_total_errors = self.mc.errors.get_number_total_errors(
+                    servo=servo, axis=axis
+                )
+                if current_total_errors != num_errors:
+                    error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
+                        servo=servo, axis=axis
+                    )
+            if error_code == 0:
                 raise ILTimeoutError("Error trigger timeout exceeded.")
-
+            _, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            if sys.version_info >= (3, 11):
+                # Adds a note to the exception with the error last error message from the queues
+                # Only available in Python 3.11+ (add_note method)
+                e.add_note(f"Error message: {error_msg}")
             raise
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
@@ -381,6 +429,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a current quadrature ramp.
 
@@ -396,6 +445,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -403,6 +453,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     def current_direct_ramp(
         self,
@@ -412,6 +464,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a current direct ramp.
 
@@ -427,6 +480,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -434,6 +488,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     def voltage_quadrature_ramp(
         self,
@@ -443,6 +499,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a voltage quadrature ramp.
 
@@ -458,6 +515,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -465,6 +523,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     def voltage_direct_ramp(
         self,
@@ -474,6 +534,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a voltage direct ramp.
 
@@ -489,6 +550,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -496,6 +558,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     @staticmethod
     def ramp_generator(
@@ -641,7 +705,7 @@ class Motion:
         """
         target_reached = False
         init_time = time.time()
-        self.logger.debug(
+        self.logger.info(
             "Wait for position %s", position, axis=axis, drive=self.mc.servo_name(servo)
         )
         while not target_reached:
@@ -652,8 +716,10 @@ class Motion:
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
                 self.logger.warning(
-                    "Timeout: position %s was not reached",
-                    position,
+                    f"Timeout: position {position} was not reached. "
+                    f"Current position: {curr_position}. "
+                    f"Position error: {position - curr_position}. "
+                    f"Allowed error: {error}",
                     axis=axis,
                     drive=self.mc.servo_name(servo),
                 )

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<IngeniaDictionary>
+  <Header>
+    <Version>3.1</Version>
+    <DefaultLanguage>en_US</DefaultLanguage>
+  </Header>
+  <Body>
+    <Categories>
+      <Category id="IDENTIFICATION">
+        <Labels>
+          <Label lang="en_US">Product Identification</Label>
+        </Labels>
+      </Category>
+    </Categories>
+    <Devices>
+      <ETH-SDCP firmwareVersion="2.11.0" ProductCode="12345678" PartNumber="EVS-NET" RevisionNumber="196635">
+        <CANopenObjects>
+          <CANopenObject id="DRV_ID_PRODUCT_CODE" index="0x1000" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">Product code</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u32" id="DRV_ID_PRODUCT_CODE" pdo_access="CONFIG" desc="Contains the product code of the drive" units="none" default="4E61BC00" cat_id="IDENTIFICATION" axis="1">
+                <Labels>
+                  <Label lang="en_US">Product code</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="DRV_STATE_STATUS" index="0x2011" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">Status word</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_STATE_STATUS" pdo_access="CYCLIC_TX" desc="" units="none" default="0000" cat_id="REPORTING" axis="1">
+                <MonDistV3 address="0x0011" subnode="1" cyclic="CYCLIC_TX"/>
+                <Labels>
+                  <Label lang="en_US">Status word</Label>
+                </Labels>
+                <BitFields>
+                  <BitField name="READY_TO_SWITCH_ON" start="0" end="0"/>
+                  <BitField name="SWITCHED_ON" start="1" end="1"/>
+                  <BitField name="OPERATION_ENABLED" start="2" end="2"/>
+                  <BitField name="FAULT" start="3" end="3"/>
+                  <BitField name="VOLTAGE_ENABLED" start="4" end="4"/>
+                  <BitField name="QUICK_STOP" start="5" end="5"/>
+                  <BitField name="SWITCH_ON_DISABLED" start="6" end="6"/>
+                  <BitField name="WARNING" start="7" end="7"/>
+                  <BitField name="TARGET_REACHED" start="10" end="10"/>
+                  <BitField name="SWITCH_LIMITS_ACTIVE" start="11" end="11"/>
+                  <BitField name="COMMUTATION_FEEDBACK_ALIGNED" start="14" end="14"/>
+                </BitFields>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+        </CANopenObjects>
+        <Errors>
+          <Error id="0x00003280" affected_module="Power stage" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">STO Active and Power stage is shutdown</Label>
+            </Labels>
+          </Error>
+        </Errors>
+      </ETH-SDCP>
+    </Devices>
+  </Body>
+  <DriveImage encoding="xs:base64Binary"></DriveImage>
+</IngeniaDictionary>

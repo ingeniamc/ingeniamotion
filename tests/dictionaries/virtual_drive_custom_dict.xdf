@@ -563,9 +563,12 @@
             <Enum value="35">Cyclic velocity</Enum>
             <Enum value="19">Profile velocity</Enum>
             <Enum value="4">Position</Enum>
+            <Enum value="164">Interpolated position</Enum>
             <Enum value="36">Cyclic position</Enum>
             <Enum value="20">Profile position</Enum>
             <Enum value="68">Profile position S-curve</Enum>
+            <Enum value="5">Torque</Enum>
+            <Enum value="37">Cyclic torque</Enum>
             <Enum value="180">PVT</Enum>
             <Enum value="275">Homing</Enum>
           </Enumerations>

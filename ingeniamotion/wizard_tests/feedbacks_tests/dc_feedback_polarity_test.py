@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -7,7 +7,7 @@ from typing_extensions import override
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
-    LegacyDictReportType,
+    ReportBase,
     TestConfigurationError,
     TestError,
 )
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
+class DCFeedbacksPolarityTest(BaseTest[ReportBase]):
     """DC feedback polarity test class."""
 
     MOVEMENT_ERROR_FACTOR = 0.05
@@ -29,17 +29,9 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
 
         SUCCESS = 0
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback polarity test pass successfully",
     }
-
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "CL_VEL_FBK_SENSOR",
-        "CL_AUX_FBK_SENSOR",
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-    ]
 
     feedback_resolution: int
 
@@ -58,8 +50,6 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         self.sensor = sensor
         self.servo = servo
         self.axis = axis
-        self.BACKUP_REGISTERS.append(mc.configuration.get_feedback_polarity_register_uid(sensor))
-        self.backup_registers_names = self.BACKUP_REGISTERS
         if logger_drive_name is None:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
@@ -70,36 +60,36 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        feedbacks = self._axis_feedbacks
+        sensor = feedbacks.get_sensor(self.sensor)
+        self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
-        self.mc.configuration.set_feedback_polarity(
-            FeedbackPolarity.NORMAL, self.sensor, servo=self.servo, axis=self.axis
-        )
+        sensor.set_polarity(FeedbackPolarity.NORMAL)
         self.logger.info(f"Set polarity to {FeedbackPolarity.NORMAL.name}")
         self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
         self.logger.info("Set current to 0")
         self.mc.motion.set_operation_mode(self.OPERATION_MODE, servo=self.servo, axis=self.axis)
         self.logger.info(f"Set operation mode to {self.OPERATION_MODE.name}")
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        auxiliary_sensor = (
+            feedbacks.get_sensor(SensorType.ABS1) if self.sensor == SensorType.BISSC2 else sensor
+        )
+        feedbacks.update_configuration({
+            feedbacks.velocity: sensor,
+            feedbacks.position: sensor,
+            feedbacks.auxiliary: auxiliary_sensor,
+        })
         if self.sensor == SensorType.BISSC2:
-            self.mc.configuration.set_auxiliar_feedback(
-                SensorType.ABS1, servo=self.servo, axis=self.axis
-            )
             self.logger.info(
                 f"Set velocity and position feedbacks to {self.sensor.name}"
-                f" and axuiliar to {SensorType.ABS1.name}"
+                f" and auxiliary to {SensorType.ABS1.name}"
             )
         else:
-            self.mc.configuration.set_auxiliar_feedback(
-                self.sensor, servo=self.servo, axis=self.axis
+            self.logger.info(
+                f"Set velocity, position and auxiliary feedbacks to {self.sensor.name}"
             )
-            self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
 
     @BaseTest.stoppable
     def increase_current_until_movement(self, initial_position: int, max_current: float) -> int:
@@ -162,8 +152,8 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         final_position = self.increase_current_until_movement(initial_position, test_current)
         polarity = self.calculate_polarity(initial_position, final_position)
         self.logger.info(f"Polarity found: {polarity.name}")
-        polarity_uid = self.mc.configuration.get_feedback_polarity_register_uid(self.sensor)
-        self.suggested_registers[polarity_uid] = polarity
+        encoder = self._axis_feedbacks.get_sensor(self.sensor)
+        self.suggest_register(encoder.polarity_reg, polarity)
         return self.ResultType.SUCCESS
 
     @override

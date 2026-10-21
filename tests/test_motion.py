@@ -1,6 +1,8 @@
 import sys
 import time
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional
+from unittest.mock import call
 
 import numpy as np
 import pytest
@@ -9,12 +11,21 @@ from ingenialink import exceptions
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.motion import Motion
-from tests.conftest import mean_actual_velocity_position
+from tests.conftest import (
+    forbids_biss_c_configuration,
+    mean_actual_velocity_position,
+    refresh_registers_for_test_rollback,
+)
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from ingeniamotion.motion_controller import MotionController
+
+try:
+    import pysoem
+except ImportError:
+    pysoem = None
 
 
 POS_PID_KP_VALUE = 0.1
@@ -56,26 +67,95 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_target_latch(mc, alias):
-    mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
-    init_pos = int(mean_actual_velocity_position(mc, alias))
-    mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
-    test_act_pos = mean_actual_velocity_position(mc, alias)
-    time.sleep(1)
-    rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-    assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
-    mc.motion.target_latch(servo=alias)
-    time.sleep(1)
-    test_act_pos = mean_actual_velocity_position(mc, alias)
-    assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/CIT-780",
+)
+def test_target_latch(servo, mc, alias):
+    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+        mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
+        mc.motion.motor_enable(servo=alias)
+        pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
+        init_pos = int(mean_actual_velocity_position(mc, alias))
+        mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
+        test_act_pos = mean_actual_velocity_position(mc, alias)
+        time.sleep(1)
+        rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+        assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
+        mc.motion.target_latch(servo=alias)
+        time.sleep(1)
+        test_act_pos = mean_actual_velocity_position(mc, alias)
+        assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
+
+
+@pytest.mark.virtual
+def test_target_latch_verifies_control_word_edge(mocker):
+    communication = SimpleNamespace(
+        get_register=mocker.Mock(side_effect=[0x020F, 0x000F, 0x020F]),
+        set_register=mocker.Mock(),
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+
+    motion.target_latch(servo="default")
+
+    assert communication.get_register.call_args_list == [
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+    ]
+    assert communication.set_register.call_args_list == [
+        call(Motion.CONTROL_WORD_REGISTER, 0x000F, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, 0x020F, servo="default", axis=1),
+    ]
+
+
+@pytest.mark.virtual
+def test_clear_target_latch_verifies_control_word_edge(mocker) -> None:
+    """Test that clearing the target latch verifies the control word edge."""
+    communication = SimpleNamespace(
+        get_register=mocker.Mock(side_effect=[0x020F, 0x000F]),
+        set_register=mocker.Mock(),
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+
+    motion.clear_target_latch(servo="default", axis=1)
+
+    assert communication.get_register.call_args_list == [
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+    ]
+    communication.set_register.assert_called_once_with(
+        Motion.CONTROL_WORD_REGISTER, 0x000F, servo="default", axis=1
+    )
+
+
+@pytest.mark.virtual
+def test_target_latch_raises_when_control_word_bit_does_not_clear(mocker):
+    communication = SimpleNamespace(
+        get_register=mocker.Mock(side_effect=[0x020F, 0x020F]),
+        set_register=mocker.Mock(),
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+    motion.TARGET_LATCH_TIMEOUT_S = 0
+
+    with pytest.raises(IMTimeoutError, match="did not clear"):
+        motion.target_latch(servo="default")
+
+    communication.set_register.assert_called_once_with(
+        Motion.CONTROL_WORD_REGISTER, 0x000F, servo="default", axis=1
+    )
 
 
 @pytest.mark.virtual
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(mc, alias, operation_mode):
-    mc.motion.set_operation_mode(operation_mode, servo=alias)
+    register_values = mc.info.register_info(OPERATION_MODE_REGISTER, servo=alias).enums.values()
+    try:
+        mc.motion.set_operation_mode(operation_mode, servo=alias)
+    except exceptions.ILNACKError:
+        if operation_mode.value in register_values:
+            raise
+        return
     test_op = mc.communication.get_register(OPERATION_MODE_REGISTER, servo=alias)
     assert operation_mode.value == test_op
 
@@ -139,13 +219,17 @@ def test_motor_enable_with_fault(
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == (
-        "The subnode 1 could not be enabled within 1000 ms. "
-        "The current subnode state is ServoState.FAULT"
-    )
 
     if sys.version_info >= (3, 11):
         assert excinfo.value.__notes__[0] == note
+
+    if excinfo.type is exceptions.ILTimeoutError:
+        pytest.xfail("https://novantamotion.atlassian.net/browse/CIT-742")
+    else:
+        assert str(excinfo.value) == (
+            "The subnode 1 could not be enabled within 1000 ms. "
+            "The current subnode state is ServoState.FAULT"
+        )
 
 
 @pytest.mark.ethernet
@@ -195,6 +279,13 @@ def test_motor_enable_with_delayed_fault(
     )
     patch_get_number_total_errors.side_effect = delayed_function_return(
         4, num_errors_before_test, num_errors_before_test + 1
+    )
+    patch_get_last_buffer_error = mocker.patch("ingeniamotion.errors.Errors.get_last_buffer_error")
+    patch_get_last_buffer_error.side_effect = delayed_function_return(
+        4,
+        # First return means no error is available yet; second return publishes the real fault.
+        (0, None, None),
+        (0x3241, 1, False),
     )
 
     mc.communication.set_register(uid, value, alias)
@@ -264,8 +355,13 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-# https://novantamotion.atlassian.net/browse/INGM-778
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@forbids_biss_c_configuration("CAP-*")
+@forbids_biss_c_configuration("EVE-*")
+@forbids_biss_c_configuration("EVS-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-800",
+)
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -290,9 +386,15 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
-# https://novantamotion.atlassian.net/browse/INGM-779
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_set_velocity_blocking(mc, alias, velocity_value):
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-805",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-805",
+)
+def test_set_velocity_blocking(mc: "MotionController", alias: str, velocity_value: float) -> None:
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
@@ -355,16 +457,77 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
         assert pytest.approx(result_v) == test_result
 
 
+@pytest.mark.parametrize(
+    "ramp_method",
+    [
+        Motion.current_quadrature_ramp,
+        Motion.current_direct_ramp,
+        Motion.voltage_quadrature_ramp,
+        Motion.voltage_direct_ramp,
+    ],
+)
+def test_ramp_step_callback(ramp_method):
+    """Each ramp method should invoke its step callback after every setpoint."""
+    setpoints = []
+    communication = SimpleNamespace(
+        set_register=lambda register, value, servo, axis: setpoints.append((
+            register,
+            value,
+            servo,
+            axis,
+        ))
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+    step_calls = []
+
+    ramp_method(motion, 1.0, 0.001, interval=0.001, step=lambda: step_calls.append(None))
+
+    assert setpoints
+    assert len(step_calls) == len(setpoints)
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
-# https://novantamotion.atlassian.net/browse/INGM-780
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_get_actual_position(mc, alias, position_value):
+@forbids_biss_c_configuration("CAP-*")
+@forbids_biss_c_configuration("EVE-*")
+@forbids_biss_c_configuration("EVS-*")
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-814",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-814",
+)
+def test_get_actual_position(mc: "MotionController", alias: str, position_value: int) -> None:
+    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
+
+    # Wait for the position to stabilize
+    stability_timeout = 3
+    stability_interval = 0.1
+    stability_tolerance = position_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+    stable_samples_required = 5
+    stable_positions = []
+    stability_start_time = time.monotonic()
+    while time.monotonic() - stability_start_time < stability_timeout:
+        stable_positions.append(mc.motion.get_actual_position(servo=alias))
+        if (
+            len(stable_positions) >= stable_samples_required
+            and np.ptp(stable_positions[-stable_samples_required:]) <= stability_tolerance
+        ):
+            break
+        time.sleep(stability_interval)
+    else:
+        raise AssertionError(
+            f"Position did not stabilize within {stability_timeout} seconds: "
+            f"last positions={stable_positions[-stable_samples_required:]}"
+        )
+
     n_samples = 200
     test_position = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
@@ -378,20 +541,34 @@ def test_get_actual_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
-# https://novantamotion.atlassian.net/browse/INGM-781
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_get_actual_velocity(mc, alias, velocity_value):
-    mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
-    time.sleep(2)
-    n_samples = 200
-    test_velocity = np.zeros(n_samples)
-    reg_value = np.zeros(n_samples)
-    for sample_ix in range(n_samples):
-        test_velocity[sample_ix] = mc.motion.get_actual_velocity(servo=alias)
-        reg_value[sample_ix] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER, servo=alias)
-    assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-802",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-802",
+)
+def test_get_actual_velocity(servo, mc, alias, velocity_value):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
+        time.sleep(2)
+        n_samples = 200
+        test_velocity = np.zeros(n_samples)
+        reg_value = np.zeros(n_samples)
+        for sample_ix in range(n_samples):
+            test_velocity[sample_ix] = mc.motion.get_actual_velocity(servo=alias)
+            reg_value[sample_ix] = mc.communication.get_register(
+                ACTUAL_VELOCITY_REGISTER, servo=alias
+            )
+        assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
 
 
 @pytest.mark.virtual
@@ -446,6 +623,14 @@ def test_set_internal_generator_configuration(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-808",
+)
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-808",
+)
 def test_internal_generator_saw_tooth_move(
     mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
@@ -475,32 +660,37 @@ def test_internal_generator_saw_tooth_move(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.not_valid_for_specifier(
+    specifier="tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C",
+    skip_reason="https://novantamotion.atlassian.net/browse/INGM-812",
+)
 def test_internal_generator_constant_move(
-    mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
+    servo, mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
-    pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
-    pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    cycle_pos = pos_resolution / pair_poles
-    mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    if op_mode == OperationMode.CURRENT:
-        mc.motion.current_quadrature_ramp(1, 2, servo=alias)
-    else:
-        mc.motion.voltage_quadrature_ramp(1, 2, servo=alias)
-    time.sleep(1)
-    mc.motion.internal_generator_constant_move(0, servo=alias)
-    initial_position = mc.motion.get_actual_position(servo=alias)
-    list_values = np.linspace(0, 1, 5) if direction > 0 else np.linspace(1, 0, 5)
-    for value in list_values:
-        mc.motion.internal_generator_constant_move(value, servo=alias)
+    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+        pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
+        pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+        cycle_pos = pos_resolution / pair_poles
+        mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
+        mc.motion.motor_enable(servo=alias)
+        if op_mode == OperationMode.CURRENT:
+            mc.motion.current_quadrature_ramp(1, 2, servo=alias)
+        else:
+            mc.motion.voltage_quadrature_ramp(1, 2, servo=alias)
         time.sleep(1)
-        final_position = mc.motion.get_actual_position(servo=alias)
-        total_movement = final_position - initial_position
-        expected_movement = cycle_pos * value if direction > 0 else cycle_pos * (value - 1)
-        assert (
-            abs(total_movement - expected_movement)
-            < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-        )
+        mc.motion.internal_generator_constant_move(0, servo=alias)
+        initial_position = mc.motion.get_actual_position(servo=alias)
+        list_values = np.linspace(0, 1, 5) if direction > 0 else np.linspace(1, 0, 5)
+        for value in list_values:
+            mc.motion.internal_generator_constant_move(value, servo=alias)
+            time.sleep(1)
+            final_position = mc.motion.get_actual_position(servo=alias)
+            total_movement = final_position - initial_position
+            expected_movement = cycle_pos * value if direction > 0 else cycle_pos * (value - 1)
+            assert (
+                abs(total_movement - expected_movement)
+                < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+            )
 
 
 @pytest.mark.parametrize(

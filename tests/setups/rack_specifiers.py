@@ -1,8 +1,15 @@
-from pathlib import Path
-
 from ingenialink.dictionary import Interface
+from summit_testing_framework.configuration.encoder_configurator import (
+    EncoderConfiguration,
+    EncoderProtocol,
+)
+from summit_testing_framework.configuration.feedback_configuration import FeedbackConfiguration
+from summit_testing_framework.configuration.feedback_constants import (
+    FeedbackSelectorRegisters,
+    FeedbackSensorType,
+)
+from summit_testing_framework.configuration.layered_config import LayeredConfig
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
-from summit_testing_framework.pytest_helpers.import_helpers import import_module_from_local_path
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
@@ -12,12 +19,8 @@ from summit_testing_framework.setups.specifiers import (
     VersionConfig,
 )
 
-# This file is used to export the specifiers to a JSON. Since tests is not a package,
-# we need to import the config files using a helper function to be able to access them
-_config_files = import_module_from_local_path(
-    module_name="config_files", module_path=Path(__file__).parent / "config_files"
-)
-assert _config_files is not None
+import summit_drives_ci_configs.config_files as config_files
+from tests.conftest import RANDOM_COMBINATIONS_SLICE_KEY
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
@@ -29,10 +32,18 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.EVE_XCR_C_2_1_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "weekends",
+                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
@@ -44,10 +55,18 @@ ETH_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=_config_files.EVE_XCR_C_2_8_1_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_8_1_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "weekends",
+                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
@@ -65,7 +84,15 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     # Disabled pending INGK-982
@@ -81,7 +108,15 @@ ETH_SETUP = SpecifierContainer({
             ),
             "2.10.0": VersionConfig.from_version(
                 version="2.10.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     # Disabled pending INGK-982
@@ -106,7 +141,15 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=_config_files.EVE_XCR_E_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_E_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -121,7 +164,15 @@ ECAT_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=_config_files.EVE_XCR_E_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_E_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -142,7 +193,15 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=_config_files.CAP_XCR_E_2_2_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_E_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -155,17 +214,26 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.9.0": VersionConfig.from_version(
-                version="2.9.0",
-                config_file=_config_files.CAP_XCR_E_2_9_0_CONFIG,
-                dictionary_type=DictionaryType.XDF_V2,
+            "2.11.0": VersionConfig.from_version(
+                version="2.11.0",
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_E_2_9_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
+                dictionary_type=DictionaryType.XDF_V3,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
+                    RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.9.0",
-                            stage_name="EtherCAT Capitan - FW. 2.9.0",
+                            run_test_stage_uid="ethercat_capitan_2.11.0",
+                            stage_name="EtherCAT Capitan - FW. 2.11.0",
                         )
                     },
                 },
@@ -183,7 +251,7 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
             config_file=None,
             dictionary_type=DictionaryType.XDF_V2,
             extra_data={
-                __EXECUTION_POLICY_KEY: "always",
+                __EXECUTION_POLICY_KEY: "nightly",
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe",
@@ -199,6 +267,7 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
             dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
+                RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe or fsoe_phase2",
@@ -219,10 +288,18 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.EVE_XCR_C_2_1_0_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_1_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "weekends",
+                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
@@ -234,10 +311,19 @@ CAN_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=_config_files.EVE_XCR_C_2_8_1_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.EVE_XCR_C_2_8_1_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.HALLS,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.QEI,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.QEI,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "always",
+                    __EXECUTION_POLICY_KEY: "never",  # https://novantamotion.atlassian.net/browse/INGM-815
+                    RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
@@ -255,10 +341,19 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
+                    RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
@@ -270,7 +365,15 @@ CAN_SETUP = SpecifierContainer({
             ),
             "2.10.0": VersionConfig.from_version(
                 version="2.10.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=LayeredConfig.from_xcf(
+                    config_files.CAP_XCR_C_2_2_0_CONFIG
+                ).assert_feedbacks({
+                    FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                    FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+                }),
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "never",
@@ -295,11 +398,12 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
             identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
+            identifier=PartNumber.CAP_XCR_E, version="2.11.0"
         ),
     ],
     extra_data={
         __EXECUTION_POLICY_KEY: "always",
+        RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
         __TEST_CONFIGS_KEY: {
             "ECAT_TEST_SESSIONS": PyTestConfig(
                 markers="soem_multislave",
@@ -307,5 +411,80 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
                 stage_name="EtherCAT Multislave",
             )
         },
+    },
+)
+
+SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
+    part_number=PartNumber.EVS_NET_E,
+    interface=Interface.ECAT,
+    version_configs={
+        # BiSS-C tests are flaky on 2.10.0 should pass on 2.11.0
+        "2.11.0": VersionConfig.from_version(
+            version="2.11.0",
+            dictionary_type=DictionaryType.XDF_V3,
+            config_file=LayeredConfig
+            .from_xcf(config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG)
+            .assert_feedbacks({
+                FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+            })
+            # Match the BiSS-C protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 0),
+            extra_data={
+                __EXECUTION_POLICY_KEY: "always",
+                __TEST_CONFIGS_KEY: {
+                    "SIRIUS_TEST_SESSIONS": PyTestConfig(
+                        markers="soem",
+                        run_test_stage_uid="ethercat_everest_s_2.11.0",
+                        stage_name="SIRIUS EVS-NET-E (BiSS-C) Tests - FW. 2.11.0",
+                    )
+                },
+            },
+            feedback_configuration=FeedbackConfiguration.from_configurable(
+                abs_encoder_1_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.BIS3, resolution_bits=17
+                ),
+                abs_encoder_2_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.BIS3, resolution_bits=17
+                ),
+            ),
+        ),
+        "2.10.0": VersionConfig.from_version(
+            version="2.10.0",
+            dictionary_type=DictionaryType.XDF_V3,
+            config_file=LayeredConfig
+            .from_xcf(config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG)
+            .assert_feedbacks({
+                FeedbackSelectorRegisters.COMMUTATION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.REFERENCE: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.VELOCITY: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.POSITION: FeedbackSensorType.ABS1,
+                FeedbackSelectorRegisters.AUXILIARY: FeedbackSensorType.ABS1,
+            })
+            # Match the SSI1 protocol applied to ABS_ENCODER_2 via feedback_configuration below.
+            .override_reg("FBK_SSI2_PROTOCOL", 1),
+            extra_data={
+                __EXECUTION_POLICY_KEY: "always",
+                RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
+                __TEST_CONFIGS_KEY: {
+                    "SIRIUS_TEST_SESSIONS": PyTestConfig(
+                        markers="soem",
+                        run_test_stage_uid="ethercat_everest_s_2.10.0",
+                        stage_name="SIRIUS EVS-NET-E (SSI) Tests - FW. 2.10.0",
+                    )
+                },
+            },
+            feedback_configuration=FeedbackConfiguration.from_configurable(
+                abs_encoder_1_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=17
+                ),
+                abs_encoder_2_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=10
+                ),
+            ),
+        ),
     },
 )

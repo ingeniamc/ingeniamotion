@@ -1,6 +1,6 @@
 import math
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -9,7 +9,7 @@ from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
-    LegacyDictReportType,
+    ReportBase,
     TestConfigurationError,
     TestError,
 )
@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
+class DCFeedbacksResolutionTest(BaseTest[ReportBase]):
     """DC feedback resolution test class."""
 
     MOVEMENT_ERROR_FACTOR = 0.05
     DEFAULT_PROFILE_MAX_VEL = 0.3
-    DEFAULT_VELOCITY_PID: ClassVar[dict[str, float]] = {"kp": 0.1, "ki": 10, "kd": 0}
+    DEFAULT_VELOCITY_PID: Final[dict[str, float]] = {"kp": 0.1, "ki": 10, "kd": 0}
     POSITION_TUNE_BW = 1
     MOVEMENT_EXTRA_TIME_FACTOR = 1.5
     MOVEMENT_TIMEOUT = MOVEMENT_EXTRA_TIME_FACTOR / DEFAULT_PROFILE_MAX_VEL
@@ -36,23 +36,9 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
 
         SUCCESS = 0
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback resolution test has been executed",
     }
-
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "CL_VEL_FBK_SENSOR",
-        "CL_AUX_FBK_SENSOR",
-        "DRV_OP_CMD",
-        "CL_VEL_PID_KP",
-        "CL_VEL_PID_KI",
-        "CL_VEL_PID_KD",
-        "CL_POS_PID_KP",
-        "CL_POS_PID_KI",
-        "CL_POS_PID_KD",
-        "PROF_MAX_VEL",
-    ]
 
     feedback_resolution: int
 
@@ -74,7 +60,6 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         self.sensor = sensor
         self.servo = servo
         self.axis = axis
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.test_velocity_pid = self.DEFAULT_VELOCITY_PID.copy()
         if kp is not None:
             self.test_velocity_pid["kp"] = kp
@@ -90,28 +75,30 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        feedbacks = self._axis_feedbacks
+        sensor = feedbacks.get_sensor(self.sensor)
+        self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        auxiliary_sensor = (
+            feedbacks.get_sensor(SensorType.ABS1) if self.sensor == SensorType.BISSC2 else sensor
+        )
+        feedbacks.update_configuration({
+            feedbacks.velocity: sensor,
+            feedbacks.position: sensor,
+            feedbacks.auxiliary: auxiliary_sensor,
+        })
         if self.sensor == SensorType.BISSC2:
-            self.mc.configuration.set_auxiliar_feedback(
-                SensorType.ABS1, servo=self.servo, axis=self.axis
-            )
             self.logger.info(
                 f"Set velocity and position feedbacks to {self.sensor.name}"
-                f" and axuiliar to {SensorType.ABS1.name}"
+                f" and auxiliary to {SensorType.ABS1.name}"
             )
         else:
-            self.mc.configuration.set_auxiliar_feedback(
-                self.sensor, servo=self.servo, axis=self.axis
+            self.logger.info(
+                f"Set velocity, position and auxiliary feedbacks to {self.sensor.name}"
             )
-            self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
         self.mc.configuration.set_velocity_pid(
             **self.test_velocity_pid, servo=self.servo, axis=self.axis
         )

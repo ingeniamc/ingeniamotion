@@ -1,6 +1,8 @@
 from enum import IntEnum
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+from typing_extensions import TypeAlias
 
 from ingeniamotion.capture import Capture
 from ingeniamotion.communication import Communication
@@ -18,6 +20,8 @@ if TYPE_CHECKING:
     from ingenialink.network import Network
     from ingenialink.servo import Servo
 
+    AnyNetwork: TypeAlias = Network[Any]
+
 
 class MotionController:
     """Motion Controller."""
@@ -26,7 +30,7 @@ class MotionController:
         # Motion Node alias -> Motion Node instance
         self.__motion_nodes: dict[str, MotionNode] = {}
         # Network Alias -> Network
-        self.__net: dict[str, Network] = {}
+        self.__net: dict[str, AnyNetwork] = {}
 
         # Motion Controller Modules
         self.__config: Configuration = Configuration(self)
@@ -85,7 +89,7 @@ class MotionController:
         drive = self._get_drive(servo)
         return drive.is_alive()
 
-    def _get_network(self, servo: str) -> "Network":
+    def _get_network(self, servo: str) -> "AnyNetwork":
         """Return servo network instance.
 
         Args:
@@ -121,7 +125,7 @@ class MotionController:
         """Read only dict of motion nodes indexed by alias."""
         return MappingProxyType(self.__motion_nodes)
 
-    def create_motion_node(self, alias: str, servo: "Servo", network: "Network") -> MotionNode:
+    def create_motion_node(self, alias: str, servo: "Servo", network: "AnyNetwork") -> MotionNode:
         """Helper to create and register a motion node.
 
         Args:
@@ -204,11 +208,11 @@ class MotionController:
         return MappingProxyType({alias: node.servo for alias, node in self.motion_nodes.items()})
 
     @property
-    def net(self) -> MappingProxyType[str, "Network"]:
+    def net(self) -> MappingProxyType[str, "AnyNetwork"]:
         """Dict of ``ingenialink.Network`` connected indexed by alias."""
         return MappingProxyType(self.__net)
 
-    def register_network(self, alias: str, network: "Network") -> None:
+    def register_network(self, alias: str, network: "AnyNetwork") -> None:
         """Register a network instance with an alias.
 
         Args:
@@ -218,14 +222,14 @@ class MotionController:
         """
         self.__net[alias] = network
 
-    def remove_network(self, network: "Network") -> None:
+    def remove_network(self, network: "AnyNetwork") -> None:
         """Remove a network instance from the registry."""
         for alias in [alias for alias, net in self.__net.items() if net == network]:
             del self.__net[alias]
 
     @property
     def servo_net(self) -> MappingProxyType[str, str]:
-        """Get the servo network dictionary.
+        """The servo network dictionary.
 
         Returns:
             The servo network dictionary.

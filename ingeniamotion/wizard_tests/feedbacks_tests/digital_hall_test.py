@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Optional
 
 from typing_extensions import override
 
@@ -6,30 +6,28 @@ if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
 from ingeniamotion.wizard_tests.base_test import BaseTest
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 
 
-class DigitalHallTest(Feedbacks):
+class DigitalHallTest(FeedbacksTest):
     """Digital hall test class."""
 
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS: ClassVar[list[str]] = [
-        "FBK_DIGHALL_POLARITY",
-        "FBK_DIGHALL_PAIRPOLES",
-        "ERROR_DIGHALL_SEQ_OPTION",
-    ]
-
-    FEEDBACK_POLARITY_REGISTER = "FBK_DIGHALL_POLARITY"
-
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
+
+    ACCEPTED_CHANGED_REGISTERS = (
+        "COMMU_ANGLE_OFFSET",
+        "COMMU_ANGLE_REF_OFFSET",
+        "COMMU_PHASING_MAX_CURRENT",
+        "COMMU_PHASING_TIMEOUT",
+    )
 
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
     ) -> None:
         super().__init__(mc, servo, axis, logger_drive_name)
-        self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 
     @override
     @BaseTest.stoppable
@@ -46,28 +44,32 @@ class DigitalHallTest(Feedbacks):
         )
 
         # Read velocity feedback
-        velocity_feedback = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        velocity_feedback = self._axis_feedbacks.velocity.get_encoder_type()
         # Read velocity feedback, if is HALLS set filter to 10 Hz
         if velocity_feedback == SensorType.HALLS:
             filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
             filter_freq_uid = self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
-            self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
-            self.suggested_registers[filter_freq_uid] = self.HALLS_FILTER_CUTOFF_FREQUENCY
+            filter_type_register = self._get_servo().dictionary.get_register(
+                filter_type_uid, axis=self.axis
+            )
+            filter_freq_register = self._get_servo().dictionary.get_register(
+                filter_freq_uid, axis=self.axis
+            )
+            self.suggest_register(filter_type_register, self.LOW_PASS_FILTER)
+            self.suggest_register(filter_freq_register, self.HALLS_FILTER_CUTOFF_FREQUENCY)
 
             self.logger.info(
                 "Setting a velocity low pass filter at 10 Hz as velocity feedback is set to Halls"
             )
-            del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER]
-            del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER]
 
     @override
     @BaseTest.stoppable
-    def suggest_polarity(self, pol: Feedbacks.Polarity) -> None:
-        polarity_uid = self.FEEDBACK_POLARITY_REGISTER
+    def suggest_polarity(self, pol: FeedbacksTest.Polarity) -> None:
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
         if self.pair_poles is None:
             raise TypeError("Pair poles has to be set before polarity suggestion.")
-        self.suggested_registers[pair_poles_uid] = self.pair_poles
-        self.suggested_registers[polarity_uid] = pol
+        pair_poles_register = self._get_servo().dictionary.get_register(
+            pair_poles_uid, axis=self.axis
+        )
+        self.suggest_register(pair_poles_register, self.pair_poles)
+        self.suggest_register(self._encoder.polarity_reg, pol)

@@ -1,11 +1,12 @@
-// https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@112bb66') _
+@Library('cicd-lib@0.23') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
 import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
+import pytest.PyTestParams
+import pytest.TestSessionScheduler
 import utils.BuildParamUtils
 
 def SW_NODE = "windows-slave"
@@ -13,25 +14,52 @@ def ECAT_NODE = "ecat-test"
 def ECAT_NODE_LOCK = "test_execution_lock_ecat"
 def CAN_NODE = "canopen-test"
 def CAN_NODE_LOCK = "test_execution_lock_can"
+def SIRIUS_NODE = "RA-RD-CT-SIRIUS"
 
-def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.6"
-def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
+def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.7"
+def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.9"
 def PUBLISHER_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/publisher:1.8"
 
-WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
-LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
+def WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
+def LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
 
-DEFAULT_PYTHON_VERSION = "3.9"
-
+def DEFAULT_PYTHON_VERSION = "3.9"
 def ALL_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"] as Set
 def PYTHON_VERSION_MIN = "3.9"
 def PYTHON_VERSION_MAX = "3.12"
-
 def BRANCH_NAME_MASTER = "master"
+def DEFAULT_LOGGING_LEVEL = 'INFO'
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 /* List of markers that require hardware */
 def HARDWARE_MARKERS = ["ethernet", "soem", "soem_multislave", "canopen", "fsoe", "fsoe_phase2"]
+
+/* GitHub credentials for SSH and HTTPS access */
+def GITHUB_SSH_CREDENTIALS_ID = 'GithubSSH'
+def GITHUB_HTTPS_CREDENTIALS_ID = 'IngeniaJenkinsGitHub'
+
+def withGithubCredentials = { Closure body ->
+    withCredentials([
+        sshUserPrivateKey(
+            credentialsId: GITHUB_SSH_CREDENTIALS_ID,
+            keyFileVariable: 'GITHUB_SSH_KEY'
+        )
+    ]) {
+        def sshKeyPath = env.GITHUB_SSH_KEY.replace('\\', '/')
+        withEnv([
+            // Use Jenkins' SSH key for GitHub and avoid prompts during clone.
+            "GIT_SSH_COMMAND=ssh -i \"${sshKeyPath}\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no",
+            // Rewrite GitHub HTTPS dependency URLs to SSH so the key is used.
+            'GIT_CONFIG_COUNT=1',
+            'GIT_CONFIG_KEY_0=url.git@github.com:.insteadOf',
+            'GIT_CONFIG_VALUE_0=https://github.com/',
+            // Make Poetry use system Git, which honors the settings above.
+            'POETRY_SYSTEM_GIT_CLIENT=true',
+        ]) {
+            body()
+        }
+    }
+}
 
 VEnvManager venvManager = new VEnvManager(
     pipeline: this,
@@ -45,18 +73,19 @@ PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvM
 TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
-    wiresharkScope: null, // Set later based on parameter
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
-    logCli: true,
     enableFirmwareVersionCheck: true,
+    setAttApiToken: true
 )
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
 TestGroup CAN_TESTS = testManager.createGroup("CAN_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup ETH_TESTS = testManager.createGroup("ETH_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestSessionScheduler CAN_MACHINE_SCHEDULER = new TestSessionScheduler([CAN_TESTS, ETH_TESTS])
 TestGroup ECAT_TESTS = testManager.createGroup("ECAT_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup LINUX_DOCKER_TESTS = testManager.createGroup("LINUX_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
 TestGroup WIN_DOCKER_TESTS = testManager.createGroup("WIN_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
+TestGroup SIRIUS_TESTS = testManager.createGroup("SIRIUS_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 
 def reassignFilePermissions() {
     if (isUnix()) {
@@ -81,70 +110,55 @@ def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=tru
 def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
 def CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
+def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
+    branchName: env.BRANCH_NAME,
+    branchNameMaster: BRANCH_NAME_MASTER,
+    runWithParametersConfig: [
+        default: 'Set to last build',
+    ],
+    testSessionFilterConfig: [
+        choices: [
+            '.*',
+            'virtual_.*',
+            'unit_.*',
+            'canopen.*',
+            'ethernet.*',
+            'canopen_everest.*',
+            'canopen_capitan.*',
+            'ethernet_everest.*',
+            'ethernet_capitan.*',
+            'ethercat.*',
+            'ethercat_everest.*',
+            'ethercat_capitan.*',
+            'ethercat_everest_s.*',
+            'ethercat_multislave.*',
+            'fsoe.*',
+            'fsoe_phase1.*',
+            'fsoe_phase2.*'
+        ],
+    ],
+    pytestLoggingLevelConfig: [
+        default: DEFAULT_LOGGING_LEVEL,
+    ],
+    wiresharkLoggingConfig: [
+        default: true,
+    ],
+    checkStateScopeConfig: [
+        default: 'session',
+    ],
+])
+
 properties([
-    pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),
-    parameters([
-        choice(
-                choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
-                name: 'PYTHON_VERSIONS'
-        ),
-        choice(
-            choices: [
-                '.*',
-                'virtual_.*',
-                'unit_.*',
-                'canopen.*',
-                'ethernet.*',
-                'canopen_everest.*',
-                'canopen_capitan.*',
-                'ethernet_everest.*',
-                'ethernet_capitan.*',
-                'ethercat.*',
-                'ethercat_everest.*',
-                'ethercat_capitan.*',
-                'ethercat_multislave.*',
-                'fsoe.*',
-                'fsoe_phase1.*',
-                'fsoe_phase2.*'
-            ],
-            name: 'test_session_filter',
-            description: 'Regex pattern for which test sessions to run (e.g. "fsoe.*", "ethercat_everest.*", ".*" for all)'
-        ),
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging'),
-        choice(
-            choices: ['function', 'module', 'session'],
-            name: 'WIRESHARK_LOGGING_SCOPE'
-        ),
-        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed'),
-        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)'),
-        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)'),
-        // Show the previous build's pytest selection as the initial value in the form.
-        // If PYTEST_SELECTION contains data, it acts as an additional selector alongside test_session_filter.\
-        // If master/develop/release branch, default to empty (no filter applied by default)
-        string(
-            name: 'PYTEST_SELECTION',
-            defaultValue: env.BRANCH_NAME in [BRANCH_NAME_MASTER, 'develop'] || env.BRANCH_NAME?.startsWith('release/') ? '' : BuildParamUtils.latestBuildParamValue(currentBuild, 'PYTEST_SELECTION', ''),
-            description: '''
-                Pytest selection string to select which tests to run.<br>
-                See <a href="https://docs.pytest.org/en/stable/how-to/usage.html#specifying-tests-selecting-tests" target="_blank">
-                pytest selecting tests documentation
-                </a>
-            '''
-        ),
-        // Repeat-count input will be used for --count arguments (pytest-repeat plugin) for all test sessions that are run.
-        // If PYTEST_SELECTION is empty, this will have no effect since all tests will run once by default.
-        string(
-            name: 'PYTEST_REPEAT_COUNTS',
-            defaultValue: BuildParamUtils.latestBuildParamValue(currentBuild, 'PYTEST_REPEAT_COUNTS', ''),
-            description: '''
-                Pytest repeat count used for <code>--count</code>.<br>
-                See <a href="https://github.com/pytest-dev/pytest-repeat" target="_blank">
-                pytest repeat plugin documentation
-                </a>.<br>
-                <span style="color:red;">Only has effect when PYTEST_SELECTION is set.</span>
-            '''
+    buildDiscarder(
+        logRotator(
+            daysToKeepStr: env.BRANCH_NAME == 'develop' ? '180' : '90',
+            numToKeepStr: env.BRANCH_NAME == 'develop' ? '50' : '10',
+            artifactDaysToKeepStr: env.BRANCH_NAME == 'develop' ? '60' : '30',
+            artifactNumToKeepStr: env.BRANCH_NAME == 'develop' ? '20' : '5',
         )
-    ])
+    ),
+    pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),
+    parameters(pipelineParams)
 ])
 
 pipeline {
@@ -153,6 +167,11 @@ pipeline {
         timestamps()
     }
     stages {
+        stage('Inspect pipeline parameters') {
+            steps {
+                echo("${PyTestParams.configSummary(params, env, currentBuild)}")
+            }
+        }
         stage('Prepare test sessions') {
             agent {
                 docker {
@@ -173,13 +192,14 @@ pipeline {
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         pythonVersions = ALL_PYTHON_VERSIONS
                     } else {
-                        if (env.PYTHON_VERSIONS == "MIN_MAX") {
+                        def selectedPythonVersions = PyTestParams.readValue(params, 'pythonVersions', env)
+                        if (selectedPythonVersions == "MIN_MAX") {
                             pythonVersions = [PYTHON_VERSION_MIN, PYTHON_VERSION_MAX] as Set
-                        } else if (env.PYTHON_VERSIONS == "MIN") {
+                        } else if (selectedPythonVersions == "MIN") {
                             pythonVersions = [PYTHON_VERSION_MIN] as Set
-                        } else if (env.PYTHON_VERSIONS == "MAX") {
+                        } else if (selectedPythonVersions == "MAX") {
                             pythonVersions = [PYTHON_VERSION_MAX] as Set
-                        } else if (env.PYTHON_VERSIONS == "All") {
+                        } else if (selectedPythonVersions == "All") {
                             pythonVersions = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
                             pythonVersions = [PYTHON_VERSION_MIN] as Set
@@ -190,43 +210,49 @@ pipeline {
                     TEST_SESSIONS.setAttributeInCascade(
                         runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(pythonVersions),
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
-                        wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
-                        clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
-                        testSelectionRepeatCount: params.PYTEST_REPEAT_COUNTS?.trim()?.isInteger() ? params.PYTEST_REPEAT_COUNTS.toInteger() : 1,
+                        testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
+                        logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
                     )
+
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
-                    ECAT_TESTS.baseTestSession.setAttributeInCascade(
-                        useWiresharkLogging: params.WIRESHARK_LOGGING,
-                    )
-                    ETH_TESTS.baseTestSession.setAttributeInCascade(
-                        useWiresharkLogging: params.WIRESHARK_LOGGING,
+                    def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
+                    ECAT_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
+                    ETH_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
+                    // Sirius tests should only run on python 3.12
+                    SIRIUS_TESTS.baseTestSession.setAttributeInCascade(
+                        runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(["3.12"] as Set),
+                        useWiresharkLogging: wiresharkLogging
                     )
 
-                    testManager.testSessionFilter = params.test_session_filter
-                    testManager.testSessionSelection = params.PYTEST_SELECTION
+                    testManager.testSessionFilter = PyTestParams.readValue(params, 'testSessionFilter')
+                    testManager.testSessionSelection = PyTestParams.readValue(params, 'pytestSelection')
 
                     // Parse run policy tags from boolean parameters
                     def runPolicyTags = [] as Set
-                    if (params.RUN_POLICY_NIGHTLY) { runPolicyTags.add("nightly") }
-                    if (params.RUN_POLICY_WEEKEND) { runPolicyTags.add("weekends") }
+                    if (PyTestParams.readValue(params, 'runPolicyNightly', env, currentBuild)) { runPolicyTags.add("nightly") }
+                    if (PyTestParams.readValue(params, 'runPolicyWeekend', env, currentBuild)) { runPolicyTags.add("weekends") }
                     testManager.runPolicyTags = runPolicyTags
 
                     echo("Test sessions have been configured to run with the following base configuration:\n${TEST_SESSIONS.configSummary()}")
 
                     // Create a minimal virtual environment for specifier export and test collection
                     venvManager.copyToWorkingFolder()
-                    venvManager.createPoetryEnvironment()
+
+                    withGithubCredentials {
+                        venvManager.createPoetryEnvironment()
+                    }
 
                     // Export specifiers and populate TestGroup sessions (policy + uid-regex evaluated here).
                     testManager.buildTestSessions("tests.setups.rack_specifiers")
                     testManager.buildTestSessions("tests.setups.virtual_drive")
 
-                    if (env.BRANCH_NAME == 'develop' && testManager.runPolicyTags.isEmpty()) {
+                    if (env.BRANCH_NAME == 'develop' && BuildParamUtils.isBranchEventBuild(currentBuild)) {
                         HW_TEST_SESSIONS.setAttributeInCascade(
                             shouldRun: false,
-                            skipReason: 'Develop builds without nightly/weekend policy do not run hardware tests',
+                            skipReason: 'Develop webhook/indexing builds do not run hardware tests',
                         )
                     }
 
@@ -255,24 +281,70 @@ pipeline {
                 stage('Build and Publish') {
                     stages {
                         stage('Build Windows') {
+                            agent {
+                                docker {
+                                    label SW_NODE
+                                    image WIN_DOCKER_IMAGE
+                                }
+                            }
+                            environment {
+                                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
+                            }
+                            stages {
+                                stage('Check Dependencies') {
+                                    steps {
+                                        script {
+                                            checkDependencies(excludeManagers: ['poetry:tests', 'git_submodules'])
+                                        }
+                                    }
+                                }
+                                stage('Move workspace') {
+                                    steps {
+                                        script {
+                                            venvManager.copyToWorkingFolder()
+                                        }
+                                    }
+                                }
+                                stage('Create virtual environments') {
+                                    steps {
+                                        script {
+                                            withGithubCredentials {
+                                                venvManager.createPoetryEnvironments(
+                                                    pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                                    installCommand: "poetry sync --all-groups --extras fsoe"
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('Run Docker tests (Windows)') {
+                                    when {
+                                        expression {
+                                            WIN_DOCKER_TESTS.anyShouldRun()
+                                        }
+                                    }
+                                    steps {
+                                        script {
+                                            WIN_DOCKER_TESTS.runTestStages()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('Linux Docker Tests and Documentation') {
                     agent {
                         docker {
-                            label SW_NODE
-                            image WIN_DOCKER_IMAGE
+                            label 'lin-worker'
+                            image LIN_DOCKER_IMAGE
+                            args '-u root:root --memory=1500m --memory-swap=1500m --cpus=0.75 --pids-limit=1024'
                         }
                     }
                     environment {
-                        VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
+                        VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
                     }
                     stages {
-                        // Uncomment when CICD is released: https://novantamotion.atlassian.net/browse/CIT-707
-                        // stage('Check Dependencies') {
-                        //     steps {
-                        //         script {
-                        //             checkDependencies(excludeManagers: ['poetry:tests'])
-                        //         }
-                        //     }
-                        // }
                         stage('Move workspace') {
                             steps {
                                 script {
@@ -283,24 +355,38 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                            installCommand: "poetry sync --all-groups --extras fsoe"
+                                        )
+                                    }
                                 }
                             }
                         }
                         stage('Build wheels') {
                             steps {
                                 script {
-                                    venvManager.runInWorkingFolder("if exist dist rmdir /s /q dist")
+                                    venvManager.runInWorkingFolder("rm -rf dist")
                                     venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
                                         venv.run("poetry run poe build")
                                     }
                                     venvManager.copyFromWorkingFolder("dist/")
                                 }
-                                archiveArtifacts artifacts: "dist\\*"
-                                stash includes: "dist\\*", name: 'build'
+                                archiveArtifacts artifacts: "dist/*"
+                            }
+                        }
+                        stage('Publish Novanta PyPi') {
+                            steps {
+                                publishNovantaPyPi('dist/*')
+                            }
+                        }
+                        stage('Publish PyPi') {
+                            when {
+                                branch 'master'
+                            }
+                            steps {
+                                publishPyPi('dist/*')
                             }
                         }
                         stage('Make a static type analysis') {
@@ -321,104 +407,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Generate documentation') {
-                            steps {
-                                script {
-                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                        venv.run("poetry run poe docs")
-                                    }
-                                    venvManager.runInWorkingFolder('"C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256')
-                                    venvManager.copyFromWorkingFolder("docs.zip")
-                                }
-                                stash includes: 'docs.zip', name: 'docs'
-                            }
-                        }
-                        stage('Run Docker tests (Windows)') {
-                            when {
-                                expression {
-                                    WIN_DOCKER_TESTS.anyShouldRun()
-                                }
-                            }
-                            steps {
-                                script {
-                                    WIN_DOCKER_TESTS.runTestStages()
-                                }
-                            }
-                        }
-                    }
-                }
-                        stage('Publish documentation') {
-                            when {
-                                beforeAgent true
-                                branch BRANCH_NAME_MASTER
-                            }
-                            agent {
-                                label 'lin-worker'
-                            }
-                            steps {
-                                unstash 'docs'
-                                unzip zipFile: 'docs.zip', dir: '.'
-                                publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
-                            }
-                        }
-                        stage('Publish wheels') {
-                            agent {
-                                docker {
-                                    label 'lin-worker'
-                                    image PUBLISHER_DOCKER_IMAGE
-                                }
-                            }
-                            stages {
-                                stage('Unstash build') {
-                                    steps {
-                                        unstash 'build'
-                                    }
-                                }
-                                stage('Publish Novanta PyPi') {
-                                    steps {
-                                        publishNovantaPyPi('dist/*')
-                                    }
-                                }
-                                stage('Publish PyPi') {
-                                    when {
-                                        branch 'master'
-                                    }
-                                    steps {
-                                        publishPyPi('dist/*')
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                stage('Linux Docker Tests') {
-                    agent {
-                        docker {
-                            label 'lin-worker'
-                            image LIN_DOCKER_IMAGE
-                            args '-u root:root'
-                        }
-                    }
-                    environment {
-                        VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
-                    }
-                    stages {
-                        stage('Move workspace') {
-                            steps {
-                                script {
-                                    venvManager.copyToWorkingFolder()
-                                }
-                            }
-                        }
-                        stage('Create virtual environments') {
-                            steps {
-                                script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs)
-                                    )
-                                }
-                            }
-                        }
                         stage('Run Linux Docker tests') {
                             when {
                                 expression { LINUX_DOCKER_TESTS.anyShouldRun() }
@@ -427,6 +415,25 @@ pipeline {
                                 script {
                                     LINUX_DOCKER_TESTS.runTestStages()
                                 }
+                            }
+                        }
+                        stage('Generate documentation') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe docs")
+                                    }
+                                    venvManager.copyFromWorkingFolder("_docs/")
+                                    archiveArtifacts artifacts: '_docs/**'
+                                }
+                            }
+                        }
+                        stage('Publish documentation') {
+                            when {
+                                branch BRANCH_NAME_MASTER
+                            }
+                            steps {
+                                publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
                             }
                         }
                     }
@@ -454,10 +461,12 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(ECAT_TESTS.baseTestSession.runInVirtualEnvs),
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(ECAT_TESTS.baseTestSession.runInVirtualEnvs),
+                                            installCommand: "poetry sync --all-groups --extras fsoe"
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -470,12 +479,45 @@ pipeline {
                         }
                     }
                 }
+                stage('SIRIUS EtherCAT - Tests') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                            SIRIUS_TESTS.anyShouldRun()
+                        }
+                    }
+                    agent {
+                        label SIRIUS_NODE
+                    }
+                    stages {
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(SIRIUS_TESTS.baseTestSession.runInVirtualEnvs),
+                                            installCommand: "poetry sync --all-groups --extras fsoe"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        stage('Run SIRIUS EtherCAT Tests') {
+                            steps {
+                                script {
+                                    SIRIUS_TESTS.runTestStages()
+                                }
+                            }
+                        }
+                    }
+                }
                 stage('CANopen/Ethernet - Tests') {
                     when {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                            CAN_TESTS.anyShouldRun() || ETH_TESTS.anyShouldRun()
+                            CAN_MACHINE_SCHEDULER.anyShouldRun()
                         }
                     }
                     options {
@@ -488,17 +530,18 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(HW_TEST_SESSIONS.runInVirtualEnvs),
-                                    )
+                                    withGithubCredentials {
+                                        venvManager.createPoetryEnvironments(
+                                            pythonVersions: venvManager.defaultVenvNamesToVersion(HW_TEST_SESSIONS.runInVirtualEnvs),
+                                        )
+                                    }
                                 }
                             }
                         }
                         stage('Run CANopen/Ethernet Tests') {
                             steps {
                                 script {
-                                    CAN_TESTS.runTestStages()
-                                    ETH_TESTS.runTestStages()
+                                    CAN_MACHINE_SCHEDULER.runTestStages()
                                 }
                             }
                         }
@@ -521,9 +564,11 @@ pipeline {
                 script {
                     def coverage_files = testManager.getCoverageFiles()
                     venvManager.copyToWorkingFolder()
-                    venvManager.createPoetryEnvironment(
-                        installCommand: "poetry sync --all-groups --extras fsoe"
-                    )
+                    withGithubCredentials {
+                        venvManager.createPoetryEnvironment(
+                            installCommand: "poetry sync --all-groups --extras fsoe"
+                        )
+                    }
                     if (coverage_files) {
                         venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
                             venv.run("poetry run poe cov-combine -- ${coverage_files.join(' ')}")

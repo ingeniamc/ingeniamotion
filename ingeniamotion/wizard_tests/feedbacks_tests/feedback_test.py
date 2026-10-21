@@ -1,17 +1,20 @@
 import math
-import time
+import warnings
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, Final, Optional
 
 import ingenialogger
+from ingenialink.drive_context_manager import DriveContextManager
 from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
 from typing_extensions import override
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
+    from ingeniamotion.feedbacks import Encoder, FeedbacksConfiguration
 
 from ingeniamotion.enums import (
     CommutationMode,
+    FeedbackPolarity,
     OperationMode,
     SensorType,
     SeverityLevel,
@@ -19,14 +22,14 @@ from ingeniamotion.enums import (
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
-    LegacyDictReportType,
+    ReportBase,
     TestConfigurationError,
     TestError,
 )
 
 
-class Feedbacks(BaseTest[LegacyDictReportType]):
-    """Feedbacks Wizard Class description."""
+class FeedbacksTest(BaseTest[ReportBase]):
+    """Base class for feedback wizard tests."""
 
     class ResultType(IntEnum):
         """Test result."""
@@ -42,7 +45,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         NORMAL = 0
         REVERSED = 1
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback test pass successfully",
         ResultType.RESOLUTION_ERROR: "Feedback has a resolution error."
         " Detected resolution does not match the one specified on the configuration.",
@@ -68,43 +71,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     MAX_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MAX_RANGE"
     MIN_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MIN_RANGE"
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "MOT_PAIR_POLES",
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-        "FBK_GEN_MODE",
-        "FBK_GEN_FREQ",
-        "FBK_GEN_GAIN",
-        "FBK_GEN_OFFSET",
-        "COMMU_ANGLE_SENSOR",
-        "FBK_GEN_CYCLES",
-        "FBK_SSI2_POS_POLARITY",
-        "COMMU_PHASING_MODE",
-        "MOT_COMMU_MOD",
-        "CL_AUX_FBK_SENSOR",
-        "ERROR_DIGENC_AGAINST_HALL_OPTION",
-        "CL_VEL_FOLLOWING_OPTION",
-        "ERROR_VEL_OUT_LIMITS_OPTION",
-        "ERROR_POS_OUT_LIMITS_OPTION",
-        "ERROR_POS_FOLLOWING_OPTION",
-        "CL_VEL_FBK_SENSOR",
-        "COMMU_ANGLE_REF_SENSOR",
-        "CL_VEL_FBK_FILTER1_TYPE",
-        "CL_VEL_FBK_FILTER1_FREQ",
-    ]
-
-    OPTIONAL_BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
-        POSITIONING_OPTION_CODE_REGISTER,
-        MAX_POSITION_RANGE_LIMIT_REGISTER,
-        MIN_POSITION_RANGE_LIMIT_REGISTER,
-    ]
-
-    FEEDBACK_POLARITY_REGISTER: str
-
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
     def __init__(
@@ -128,9 +94,8 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
-        self.backup_registers_names = self.BACKUP_REGISTERS.copy()
-        self.optional_backup_registers_names = self.OPTIONAL_BACKUP_REGISTERS.copy()
         self.suggested_registers = {}
+        self._original_feedbacks_configuration: Optional[FeedbacksConfiguration] = None
 
     @BaseTest.stoppable
     def __check_feedback_tolerance(
@@ -189,31 +154,30 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         Raises:
             TestConfigurationError: If the feedback resolution is not greater than 0.
         """
-        # First set all feedback to feedback in test, so there won't be
-        # more than 5 feedback at the same time
-        self.mc.configuration.set_commutation_feedback(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
-        self.mc.configuration.set_reference_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_auxiliar_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        # Set Polarity to 0
-        self.mc.communication.set_register(
-            self.FEEDBACK_POLARITY_REGISTER,
-            self.Polarity.NORMAL,
-            servo=self.servo,
-            axis=self.axis,
-        )
+        feedbacks = self._axis_feedbacks
+        sensor = feedbacks.get_sensor(self.sensor)
+        feedbacks.update_configuration({
+            feedbacks.reference: sensor,
+            feedbacks.velocity: sensor,
+            feedbacks.position: sensor,
+            feedbacks.auxiliary: sensor,
+        })
+        sensor.set_polarity(FeedbackPolarity.NORMAL)
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
+
+    @override
+    def _restore_configuration(self, context: DriveContextManager) -> None:
+        """Restore feedback selectors without exceeding the drive feedback limit."""
+        if self._original_feedbacks_configuration is None:
+            return
+        self._axis_feedbacks.set_configuration(self._original_feedbacks_configuration)
+        self._original_feedbacks_configuration = None
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
@@ -237,21 +201,19 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             except IMRegisterNotExistError as e:  # noqa: PERF203
                 self.logger.warning(e)
 
+    @property
+    def _encoder(self) -> "Encoder":
+        """Encoder of the feedback under test."""
+        return self._axis_feedbacks.get_sensor(self.sensor)
+
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Polarity) -> None:
         """Suggest the detected polarity.
 
         Args:
             pol: The detected polarity.
-
-        Raises:
-            TypeError: If the feedback polarity register is not set before suggesting polarity.
-
         """
-        if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
-            raise TypeError("Feedback polarity register has to be set before polarity suggestion.")
-        polarity_uid = self.FEEDBACK_POLARITY_REGISTER
-        self.suggested_registers[polarity_uid] = pol
+        self.suggest_register(self._encoder.polarity_reg, pol)
 
     @override
     @BaseTest.stoppable
@@ -260,7 +222,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
         #  - Current control loop tuned
         #  - Feedback reaction codes to WARNING
-        # Protection to avoid any unwanted movement
+        # Protection to avoid any unwanted movement: snapshot the feedback configuration
+        # before it's reconfigured below, so _restore_configuration can put it back.
+        self._original_feedbacks_configuration = self._axis_feedbacks.get_configuration()
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST")
         # Set commutation modulation to sinusoidal
@@ -277,10 +241,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         )
         # For each feedback on motor side we should repeat this test using the
         # feedback as position sensor. The polarity of the feedback must be set
-        # also to normal at the beginning. All feedback are set to the same,
-        # in order to avoid feedback configuration
+        # also to normal at the beginning. Reference/velocity/position/auxiliary
+        # feedback are set to the same, in order to avoid feedback configuration
         # error (wizard_tests series can only support 4 feedback at the
-        # same time)
+        # same time). Commutation is handled separately below.
         self.feedback_setting()
 
         self.mc.motion.set_internal_generator_configuration(
@@ -338,12 +302,8 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         Raises:
             TypeError: On registers with unexpected type.
         """
-        position_feedback_value = self.mc.configuration.get_position_feedback(
-            servo=self.servo, axis=self.axis
-        )
-        velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        position_feedback_value = self._axis_feedbacks.position.get_encoder_type()
+        velocity_feedback_value = self._axis_feedbacks.velocity.get_encoder_type()
 
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
@@ -361,9 +321,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def __wait_for_movement(self, timeout: float) -> None:
-        timeout = time.time() + timeout
-        while time.time() < timeout:
-            time.sleep(0.1)
+        for _ in self._timeout_loop(timeout_sec=timeout, sleep_sec=0.1, timeout=None):
             if self.mc.errors.is_fault_active(servo=self.servo, axis=self.axis):
                 self.show_error_message()
 
@@ -413,7 +371,12 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         cycle_time = 2 / self.test_frequency
 
         self.mc.motion.current_quadrature_ramp(
-            target_current, cycle_time, servo=self.servo, axis=self.axis
+            target_current,
+            cycle_time,
+            servo=self.servo,
+            axis=self.axis,
+            interval=0.01,
+            step=self.check_stop,
         )
 
     def __first_movement_and_set_current(self) -> float:
@@ -530,3 +493,20 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             return SeverityLevel.FAIL
         else:
             return SeverityLevel.SUCCESS
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "Feedbacks": "FeedbacksTest",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

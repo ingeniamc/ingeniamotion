@@ -1,6 +1,6 @@
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -14,13 +14,13 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExistError
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Phasing(BaseTest[LegacyDictReportType]):
+class Phasing(BaseTest[ReportBase]):
     """Phasing test class."""
 
     INTERNAL_GENERATOR_VALUE = 3
@@ -38,26 +38,18 @@ class Phasing(BaseTest[LegacyDictReportType]):
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
     COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
+    COMMUTATION_ANGLE_REF_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
+    HALL_OFFSET_COMPENSATION_VALUE_REGISTER = "FBK_DIGHALL_OFFSET_COMP_VALUE"
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-        "FBK_GEN_MODE",
-        "FBK_GEN_FREQ",
-        "FBK_GEN_GAIN",
-        "FBK_GEN_OFFSET",
-        "COMMU_ANGLE_SENSOR",
-        "FBK_GEN_CYCLES",
-        "COMMU_PHASING_MAX_CURRENT",
-        "COMMU_PHASING_TIMEOUT",
-        "COMMU_PHASING_ACCURACY",
-        "COMMU_PHASING_MODE",
-        "MOT_COMMU_MOD",
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
-    ]
+    # Left changed on purpose: drive-computed calibration results (angle offsets) and the
+    # phasing config the test applies. They are not rolled back, so restore checks accept them.
+    ACCEPTED_CHANGED_REGISTERS: ClassVar[tuple[str, ...]] = (
+        COMMUTATION_ANGLE_OFFSET_REGISTER,
+        COMMUTATION_ANGLE_REF_OFFSET_REGISTER,
+        MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
+        PHASING_TIMEOUT_REGISTER,
+        HALL_OFFSET_COMPENSATION_VALUE_REGISTER,
+    )
 
     class ResultType(IntEnum):
         """Test result."""
@@ -65,7 +57,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         SUCCESS = 0
         FAIL = -1
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Phasing process finished successfully",
         ResultType.FAIL: "Phasing process has failed.  Review your motor configuration.",
     }
@@ -84,7 +76,6 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.comm: Optional[SensorType] = None
         self.ref: Optional[SensorType] = None
         if logger_drive_name is None:
@@ -174,8 +165,11 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST", axis=self.axis)
 
-        self.comm = self.mc.configuration.get_commutation_feedback(servo=self.servo, axis=self.axis)
-        self.ref = self.mc.configuration.get_reference_feedback(servo=self.servo, axis=self.axis)
+        configuration = self._axis_feedbacks.get_configuration()
+        comm_encoder = configuration.encoder_at(self._axis_feedbacks.commutation)
+        ref_encoder = configuration.encoder_at(self._axis_feedbacks.reference)
+        self.comm = comm_encoder.SENSOR_TYPE
+        self.ref = ref_encoder.SENSOR_TYPE
 
         if self.ref == self.INTERNAL_GENERATOR_VALUE:
             raise TestError("Reference feedback sensor is set to internal generator")
@@ -183,10 +177,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
             raise TestError("Commutation feedback sensor is set to internal generator")
 
         # selection of commutation sensor
-        if (
-            self.mc.configuration.get_reference_feedback_category(servo=self.servo, axis=self.axis)
-            == SensorCategory.INCREMENTAL
-        ):
+        if ref_encoder.CATEGORY == SensorCategory.INCREMENTAL:  # noqa: SIM108
             # Delete commutation feedback from backup registers list as
             # commutation feedback is kept the same
             fb = self.comm
@@ -213,7 +204,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.logger.info("Target quadrature current set to zero", axis=self.axis)
         self.logger.info("Target direct current set to zero", axis=self.axis)
 
-        self.mc.configuration.set_commutation_feedback(fb, servo=self.servo, axis=self.axis)
+        self._axis_feedbacks.commutation.set_encoder_type(fb)
         self.logger.info("Reset phasing status by setting again commutation sensor")
 
         self.mc.configuration.set_phasing_mode(PhasingMode.FORCED, servo=self.servo, axis=self.axis)
@@ -283,12 +274,8 @@ class Phasing(BaseTest[LegacyDictReportType]):
             TestError: If the commutation feedback is set to internal generator.
 
         """
-        ref_category = self.mc.configuration.get_reference_feedback_category(
-            servo=self.servo, axis=self.axis
-        )
-        comm_category = self.mc.configuration.get_commutation_feedback_category(
-            servo=self.servo, axis=self.axis
-        )
+        ref_category = self._axis_feedbacks.reference.get_encoder().CATEGORY
+        comm_category = self._axis_feedbacks.commutation.get_encoder().CATEGORY
         # Check if reference feedback is incremental
         if ref_category == SensorCategory.INCREMENTAL:
             # In that if commutation feedback is incremental also
@@ -339,13 +326,24 @@ class Phasing(BaseTest[LegacyDictReportType]):
             self.COMMUTATION_ANGLE_OFFSET_REGISTER, servo=self.servo, axis=self.axis
         )
 
-        self.suggested_registers = {
-            "COMMU_PHASING_MODE": pha,
-            "COMMU_PHASING_TIMEOUT": self.pha_timeout,
-            "COMMU_PHASING_ACCURACY": self.pha_accuracy,
-            "COMMU_PHASING_MAX_CURRENT": self.pha_current,
-            "COMMU_ANGLE_OFFSET": ang,
-        }
+        servo_dictionary = self._get_servo().dictionary
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MODE", axis=self.axis), pha
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_TIMEOUT", axis=self.axis), self.pha_timeout
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_ACCURACY", axis=self.axis),
+            self.pha_accuracy,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MAX_CURRENT", axis=self.axis),
+            self.pha_current,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_ANGLE_OFFSET", axis=self.axis), ang
+        )
         return self.ResultType.SUCCESS
 
     @override

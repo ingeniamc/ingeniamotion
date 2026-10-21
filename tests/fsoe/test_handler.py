@@ -1,6 +1,7 @@
 import logging
 import random
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 import pytest
@@ -9,8 +10,9 @@ from ingenialink.ethercat.network import EthercatNetwork
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.conftest import refresh_registers_for_test_rollback
 from tests.fsoe.conftest import MockNetwork, MockServo
+from tests.fsoe.utils.fsoe_emulation import FSoENetwork, FSoESlave
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
@@ -19,6 +21,7 @@ if FSOE_MASTER_INSTALLED:
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from pytest_mock import MockerFixture
+    from summit_testing_framework.pytest_helpers.pytest_output_handler import PytestOutputHandler
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -53,64 +56,66 @@ def test_create_fsoe_master_handler_use_sra(mc: "MotionController", use_sra: boo
 
 @pytest.mark.fsoe
 def test_set_configured_module_ident_1(
+    servo: "EthercatServo",
     mocker: "MockerFixture",
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     caplog: "pytest.LogCaptureFixture",
 ) -> None:
     _, handler = mc_with_fsoe_with_sra
+    with refresh_registers_for_test_rollback(servo, ["MDP_CONFIGURED_MODULE_1"]):
 
-    def create_mock_safety_module(
-        module_ident: int, uses_sra: bool = True, has_project_crc: bool = False
-    ) -> DictionarySafetyModule:
-        if has_project_crc:
-            params = [
-                DictionarySafetyModule.ApplicationParameter(
-                    uid=handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC
-                )
-            ]
-        else:
-            params = [DictionarySafetyModule.ApplicationParameter(uid="DUMMY_PARAM")]
+        def create_mock_safety_module(
+            module_ident: int, uses_sra: bool = True, has_project_crc: bool = False
+        ) -> DictionarySafetyModule:
+            if has_project_crc:
+                params = [
+                    DictionarySafetyModule.ApplicationParameter(
+                        uid=handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC
+                    )
+                ]
+            else:
+                params = [DictionarySafetyModule.ApplicationParameter(uid="DUMMY_PARAM")]
 
-        return DictionarySafetyModule(
-            module_ident=module_ident,
-            uses_sra=uses_sra,
-            application_parameters=params,
+            return DictionarySafetyModule(
+                module_ident=module_ident,
+                uses_sra=uses_sra,
+                application_parameters=params,
+            )
+
+        # Do not write mocked values to the servo
+        mocker.patch.object(handler._FSoEMasterHandler__servo, "write")
+        mock_safety_modules = {
+            1: create_mock_safety_module(module_ident=1, uses_sra=True, has_project_crc=True)
+        }
+        mocker.patch.object(
+            handler._FSoEMasterHandler__servo.dictionary,
+            "safety_modules",
+            mock_safety_modules,
         )
 
-    # Do not write mocked values to the servo
-    mocker.patch.object(handler._FSoEMasterHandler__servo, "write")
-    mock_safety_modules = {
-        1: create_mock_safety_module(module_ident=1, uses_sra=True, has_project_crc=True)
-    }
-    mocker.patch.object(
-        handler._FSoEMasterHandler__servo.dictionary,
-        "safety_modules",
-        mock_safety_modules,
-    )
+        caplog.set_level(logging.WARNING)
+        with pytest.raises(
+            RuntimeError,
+            match="Module ident value to write could not be retrieved.",
+        ):
+            handler._FSoEMasterHandler__set_configured_module_ident_1()
+        expected_warning = (
+            f"Safety module has the application parameter "
+            f"{handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC}, skipping it."
+        )
+        assert expected_warning in caplog.text
 
-    caplog.set_level(logging.WARNING)
-    with pytest.raises(
-        RuntimeError,
-        match="Module ident value to write could not be retrieved.",
-    ):
-        handler._FSoEMasterHandler__set_configured_module_ident_1()
-    expected_warning = (
-        f"Safety module has the application parameter "
-        f"{handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC}, skipping it."
-    )
-    assert expected_warning in caplog.text
-
-    # Use a proper safety module
-    mock_safety_modules = {
-        2: create_mock_safety_module(module_ident=2, uses_sra=True, has_project_crc=False)
-    }
-    mocker.patch.object(
-        handler._FSoEMasterHandler__servo.dictionary,
-        "safety_modules",
-        mock_safety_modules,
-    )
-    result = handler._FSoEMasterHandler__set_configured_module_ident_1()
-    assert result == mock_safety_modules[2]
+        # Use a proper safety module
+        mock_safety_modules = {
+            2: create_mock_safety_module(module_ident=2, uses_sra=True, has_project_crc=False)
+        }
+        mocker.patch.object(
+            handler._FSoEMasterHandler__servo.dictionary,
+            "safety_modules",
+            mock_safety_modules,
+        )
+        result = handler._FSoEMasterHandler__set_configured_module_ident_1()
+        assert result == mock_safety_modules[2]
 
 
 @pytest.mark.fsoe
@@ -124,9 +129,11 @@ def test_fsoe_master_get_safety_parameters(
 
 @pytest.mark.fsoe
 def test_create_fsoe_handler_from_invalid_pdo_maps(
-    caplog: "pytest.LogCaptureFixture", fsoe_error_monitor: Callable[[FSoEError], None]
+    caplog: "pytest.LogCaptureFixture",
+    fsoe_error_monitor: Callable[[FSoEError], None],
+    sample_safe_ph2_xdfv3_dictionary: str,
 ) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    mock_servo = MockServo(sample_safe_ph2_xdfv3_dictionary)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
 
     caplog.set_level(logging.ERROR)
@@ -156,8 +163,10 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(
 
 
 @pytest.mark.fsoe
-def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_set_slave_address(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         handler = FSoEMasterHandler(
             servo=mock_servo,
@@ -174,8 +183,10 @@ def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError],
 
 
 @pytest.mark.fsoe
-def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_inherit_slave_address(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         # Set the slave address in the servo
         mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
@@ -193,8 +204,10 @@ def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEErr
 
 
 @pytest.mark.fsoe
-def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_set_connection_id(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         handler = FSoEMasterHandler(
             servo=mock_servo,
@@ -209,8 +222,10 @@ def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError],
 
 
 @pytest.mark.fsoe
-def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_random_connection_id(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
 
     random.seed(0x1234)
     try:
@@ -279,6 +294,127 @@ def test_handler_is_stopped_if_error_in_pdo_thread(
     time.sleep(1.0)
     assert handler.running is False
     assert fsoe_states[-1] == FSoEState.RESET
+
+
+@pytest.mark.fsoe
+def test_mock_slave_drives_real_handshake_to_data_state(
+    sample_safe_ph1_xdfv3_dictionary: str,
+) -> None:
+    errors: list[tuple[str, str]] = []
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
+    handler = FSoEMasterHandler(
+        servo=mock_servo,
+        net=MockNetwork(),
+        use_sra=True,
+        report_error_callback=lambda name, err: errors.append((name, err)),
+    )
+    try:
+        handler.start()
+        FSoENetwork(handler, FSoESlave()).exchange_to_data()
+
+        assert handler.state == FSoEState.DATA
+        assert errors == []
+    finally:
+        handler.delete()
+
+
+@pytest.fixture
+def fsoe_trace_path(test_output_handler: "PytestOutputHandler") -> Path:
+    """Location of the FSoE exchange trace inside the test output directory.
+
+    Returns:
+        Path to the exchange trace log file.
+    """
+    return test_output_handler.tests_output_dir / "fsoe_startup_sequence.log"
+
+
+@pytest.mark.fsoe
+def test_master_ignores_stale_reply_after_master_replacement(
+    fsoe_trace_path: Path,
+    sample_safe_ph1_xdfv3_dictionary: str,
+) -> None:
+    # One physical slave, one master instance connecting to it after another -
+    # e.g. Motionlab switching between two FSoE master configurations against
+    # the same drive - not two independent slaves.
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
+    mock_network = MockNetwork()
+
+    errors_a: list[tuple[str, str]] = []
+
+    def report_error_a(name: str, error: str) -> None:
+        errors_a.append((name, error))
+        network.trace("HANDLER_A_ERROR", f"{name}: {error}")
+
+    handler_a = FSoEMasterHandler(
+        servo=mock_servo,
+        net=mock_network,
+        use_sra=True,
+        report_error_callback=report_error_a,
+    )
+    network = FSoENetwork(handler_a, FSoESlave(), trace_path=fsoe_trace_path)
+    network.trace("TEST", "handler_a startup")
+    try:
+        # handler_a completes a real startup and exchanges one live DATA
+        # packet, leaving that packet in the physical slave's PDO buffer.
+        handler_a.start()
+        network.exchange_to_data()
+        assert handler_a.state == FSoEState.DATA
+        network.exchange_one_round()  # DATA -> last live data reply
+        network.trace(
+            "STOP",
+            f"request_before_stop={handler_a.safety_master_pdu_map.get_item_bytes().hex(' ')}, "
+            f"state={handler_a.state.name}",
+        )
+        handler_a.stop()
+        network.trace(
+            "STOP",
+            f"request_after_stop={handler_a.safety_master_pdu_map.get_item_bytes().hex(' ')}, "
+            f"state={handler_a.state.name}",
+        )
+        assert errors_a == []
+    finally:
+        handler_a.stop()
+        handler_a.delete()
+
+    # handler_a has fully disconnected from the slave. A second, independent
+    # master instance now takes over the SAME slave (never power-cycled),
+    # which still has handler_a's last DATA reply as its last output.
+    errors_b: list[tuple[str, str]] = []
+
+    def report_error_b(name: str, error: str) -> None:
+        errors_b.append((name, error))
+        network.trace("HANDLER_B_ERROR", f"{name}: {error}")
+
+    handler_b = FSoEMasterHandler(
+        servo=mock_servo,
+        net=mock_network,
+        use_sra=True,
+        report_error_callback=report_error_b,
+    )
+    try:
+        network.replace_master(handler_b)
+        network.trace("TEST", "handler_b startup on the same slave")
+        handler_b.start()
+        # The stale incoming DATA packet is delivered before B processes its
+        # Reset, while the outgoing master request is independently replaced
+        # with a fresh Reset on the next cycle.
+        network.exchange_one_round()  # Reset -> stale DATA reply
+        assert handler_b.state == FSoEState.RESET
+        assert errors_b == []
+
+        network.exchange_one_round()  # Reset -> fresh Reset reply
+        assert handler_b.state == FSoEState.SESSION
+
+        # The stale incoming DATA packet is delivered again while the master
+        # is in SESSION. The master still reacts to it internally (it isn't
+        # withheld), but the resulting error is recognized as caused by a
+        # repeated slave reply and is not reported to the user.
+        network.exchange_one_round()  # Session -> stale DATA reply
+        assert errors_b == []
+        assert handler_b.state == FSoEState.RESET
+    finally:
+        handler_b.delete()
+        network.close()
 
 
 @pytest.mark.fsoe

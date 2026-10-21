@@ -1,8 +1,10 @@
 from collections.abc import Iterator
+from functools import cached_property
 
 from ingenialink import Network, Servo
 
 from ingeniamotion.axis import Axis
+from ingeniamotion.capture import MotionNodeCapture
 from ingeniamotion.errors import NodeErrors
 
 
@@ -25,11 +27,9 @@ class MotionNode:
             if axis_number != 0  # Axis 0 is the motion node itself, not an axis
         }
 
-        self.__errors = NodeErrors(self)
-
     @property
     def servo(self) -> Servo:
-        """Get the servo associated with the motion node."""
+        """The servo associated with the motion node."""
         return self.__servo
 
     @property
@@ -39,7 +39,7 @@ class MotionNode:
 
     @property
     def axes(self) -> Iterator["Axis"]:
-        """Get the axes of the motion node.
+        """The axes of the motion node.
 
         Yields:
             Axis: Each axis of the motion node.
@@ -60,7 +60,16 @@ class MotionNode:
         """
         return self.__axes[axis_number]
 
-    @property
+    @cached_property
     def errors(self) -> NodeErrors:
-        """Get the errors of the motion node."""
-        return self.__errors
+        """The errors of the motion node.
+
+        Returns:
+            The error container, built on first access.
+        """
+        return NodeErrors(self)
+
+    @cached_property
+    def capture(self) -> "MotionNodeCapture":
+        """The capture operations of the motion node."""
+        return MotionNodeCapture(self)
