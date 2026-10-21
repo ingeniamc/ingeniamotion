@@ -177,7 +177,7 @@ class Phasing(BaseTest[ReportBase]):
             raise TestError("Commutation feedback sensor is set to internal generator")
 
         # selection of commutation sensor
-        if ref_encoder.CATEGORY == SensorCategory.INCREMENTAL:  # noqa: SIM108
+        if ref_encoder.CATEGORY == SensorCategory.INCREMENTAL:  # ruff: ignore[if-else-block-instead-of-if-exp]
             # Delete commutation feedback from backup registers list as
             # commutation feedback is kept the same
             fb = self.comm

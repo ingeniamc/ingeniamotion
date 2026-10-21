@@ -698,7 +698,7 @@ def test_map_safety_input_output_random(
     random_paddings: bool,
     fsoe_states: list[FSoEState],
     servo: "EthercatServo",
-    no_error_tracker: None,  # noqa: ARG001
+    no_error_tracker: None,  # ruff: ignore[unused-function-argument]
     mcu_error_queue_a: "ServoErrorQueue",
     mcu_error_queue_b: "ServoErrorQueue",
     iteration: int,  # noqa: ARG001
@@ -765,7 +765,7 @@ def test_map_all_safety_functions(
     fsoe_maps_dir: Path,
     fsoe_states: list[FSoEState],
     servo: "EthercatServo",
-    no_error_tracker: None,  # noqa: ARG001
+    no_error_tracker: None,  # ruff: ignore[unused-function-argument]
     mcu_error_queue_a: "ServoErrorQueue",
     mcu_error_queue_b: "ServoErrorQueue",
 ) -> None:

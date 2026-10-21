@@ -8,53 +8,411 @@ pydocstyle.convention = "google"
 flake8-unused-arguments.ignore-variadic-names = true
 
 select = [
-    "F", # Pyflakes
-    "E", # pycodestyle
-    "W", # pycodestyle
-    "I", # isort
-    "N", # pep8-naming
-    "D", # pydocstyle
-    "UP", # pyupgrade
-    "T10", # Flake8 Debugger
-    "C4", # flake8 comprehensions
-    "C90", # mccabe complexity
-    "A", # flake8 builtins shadowing
-    "ISC", # flake8 implicit string concatenation
-    "LOG", # flake8 logging
-    "PIE", # flake8 pie
-    "T20", # flake8 prints
-    "Q", # flake8 quotes
-    "RSE", # flake8 raise
-    "SIM", # flake8 simplify
-    "TID", # flake8 tidy imports
-    "TC", # flake8 type checking
-    "ARG", # flake8 unused arguments
-    "TD", # flake8 todos
-    "ERA", # eradicate commented out code
-    "PGH", # pygrep hooks
-    "FLY", # flyint f-strings
-    "NPY", # numpy rules
-    "PERF", # perflint
-    "DOC", # pydoclint
-    "COM", # Flake 8 trailing commas
-    "PLC0415", # import-outside-top-level
-    "RUF005", # Ruff collection concatenation
-    "RUF008", # Ruff dataclasses mutable defaults
-    "RUF012", # Ruff mutable class default
-    "RUF027", # Missing f-string syntax
+    "assert-tuple", # Pyflakes
+    "break-outside-loop",
+    "continue-outside-loop",
+    "default-except-not-last",
+    "expressions-in-star-assignment",
+    "f-string-missing-placeholders",
+    "forward-annotation-syntax-error",
+    "future-feature-not-defined",
+    "if-tuple",
+    "import-shadowed-by-loop-var",
+    "invalid-print-syntax",
+    "is-literal",
+    "late-future-import",
+    "multi-value-repeated-key-literal",
+    "multi-value-repeated-key-variable",
+    "multiple-starred-expressions",
+    "percent-format-expected-mapping",
+    "percent-format-expected-sequence",
+    "percent-format-extra-named-arguments",
+    "percent-format-invalid-format",
+    "percent-format-missing-argument",
+    "percent-format-mixed-positional-and-named",
+    "percent-format-positional-count-mismatch",
+    "percent-format-star-requires-sequence",
+    "percent-format-unsupported-format-character",
+    "raise-not-implemented",
+    "redefined-while-unused",
+    "return-outside-function",
+    "string-dot-format-extra-named-arguments",
+    "string-dot-format-extra-positional-arguments",
+    "string-dot-format-invalid-format",
+    "string-dot-format-missing-arguments",
+    "string-dot-format-mixing-automatic",
+    "undefined-export",
+    "undefined-local",
+    "undefined-local-with-import-star",
+    "undefined-local-with-import-star-usage",
+    "undefined-local-with-nested-import-star-usage",
+    "undefined-name",
+    "unused-annotation",
+    "unused-import",
+    "unused-variable",
+    "yield-outside-function",
+    "ambiguous-class-name", # pycodestyle
+    "ambiguous-function-name",
+    "ambiguous-variable-name",
+    "bare-except",
+    "blank-line-after-decorator",
+    "blank-line-between-methods",
+    "blank-lines-after-function-or-class",
+    "blank-lines-before-nested-definition",
+    "blank-lines-top-level",
+    "indentation-with-invalid-multiple",
+    "indentation-with-invalid-multiple-comment",
+    "io-error",
+    "lambda-assignment",
+    "line-too-long",
+    "missing-whitespace",
+    "missing-whitespace-after-keyword",
+    "missing-whitespace-around-arithmetic-operator",
+    "missing-whitespace-around-bitwise-or-shift-operator",
+    "missing-whitespace-around-modulo-operator",
+    "missing-whitespace-around-operator",
+    "missing-whitespace-around-parameter-equals",
+    "mixed-spaces-and-tabs",
+    "module-import-not-at-top-of-file",
+    "multiple-imports-on-one-line",
+    "multiple-leading-hashes-for-block-comment",
+    "multiple-spaces-after-comma",
+    "multiple-spaces-after-keyword",
+    "multiple-spaces-after-operator",
+    "multiple-spaces-before-keyword",
+    "multiple-spaces-before-operator",
+    "multiple-statements-on-one-line-colon",
+    "multiple-statements-on-one-line-semicolon",
+    "no-indented-block",
+    "no-indented-block-comment",
+    "no-space-after-block-comment",
+    "no-space-after-inline-comment",
+    "none-comparison",
+    "not-in-test",
+    "not-is-test",
+    "over-indented",
+    "redundant-backslash",
+    "tab-after-comma",
+    "tab-after-keyword",
+    "tab-after-operator",
+    "tab-before-keyword",
+    "tab-before-operator",
+    "too-few-spaces-before-inline-comment",
+    "too-many-blank-lines",
+    "true-false-comparison",
+    "type-comparison",
+    "unexpected-indentation",
+    "unexpected-indentation-comment",
+    "unexpected-spaces-around-keyword-parameter-equals",
+    "useless-semicolon",
+    "whitespace-after-decorator",
+    "whitespace-after-open-bracket",
+    "whitespace-before-close-bracket",
+    "whitespace-before-parameters",
+    "whitespace-before-punctuation",
+    "blank-line-with-whitespace", # pycodestyle
+    "doc-line-too-long",
+    "invalid-escape-sequence",
+    "missing-newline-at-end-of-file",
+    "tab-indentation",
+    "too-many-newlines-at-end-of-file",
+    "trailing-whitespace",
+    "missing-required-import", # isort
+    "unsorted-imports",
+    "camelcase-imported-as-acronym", # pep8-naming
+    "camelcase-imported-as-constant",
+    "camelcase-imported-as-lowercase",
+    "constant-imported-as-non-constant",
+    "dunder-function-name",
+    "error-suffix-on-exception-name",
+    "invalid-argument-name",
+    "invalid-class-name",
+    "invalid-first-argument-name-for-class-method",
+    "invalid-first-argument-name-for-method",
+    "invalid-function-name",
+    "invalid-module-name",
+    "lowercase-imported-as-non-lowercase",
+    "mixed-case-variable-in-class-scope",
+    "mixed-case-variable-in-global-scope",
+    "non-lowercase-variable-in-function",
+    "blank-line-after-function", # pydocstyle
+    "blank-line-before-class",
+    "blank-line-before-function",
+    "blank-lines-between-header-and-content",
+    "docstring-tab-indentation",
+    "empty-docstring",
+    "empty-docstring-section",
+    "escape-sequence-in-docstring",
+    "first-word-uncapitalized",
+    "incorrect-section-order",
+    "missing-blank-line-after-summary",
+    "missing-section-name-colon",
+    "missing-terminal-punctuation",
+    "multi-line-summary-first-line",
+    "new-line-after-last-paragraph",
+    "no-blank-line-after-section",
+    "no-blank-line-before-section",
+    "non-capitalized-section-name",
+    "over-indentation",
+    "overindented-section",
+    "overload-with-docstring",
+    "property-docstring-starts-with-verb",
+    "signature-in-docstring",
+    "surrounding-whitespace",
+    "triple-single-quotes",
+    "under-indentation",
+    "undocumented-magic-method",
+    "undocumented-param",
+    "undocumented-public-class",
+    "undocumented-public-function",
+    "undocumented-public-method",
+    "undocumented-public-nested-class",
+    "unnecessary-multiline-docstring",
+    "context-manager-iterator", # pyupgrade
+    "convert-named-tuple-functional-to-class",
+    "convert-typed-dict-functional-to-class",
+    "datetime-timezone-utc",
+    "deprecated-abc-decorator",
+    "deprecated-c-element-tree",
+    "deprecated-import",
+    "deprecated-mock-import",
+    "deprecated-unittest-alias",
+    "extraneous-parentheses",
+    "f-string",
+    "format-literals",
+    "lru-cache-with-maxsize-none",
+    "lru-cache-without-parameters",
+    "native-literals",
+    "non-pep585-annotation",
+    "non-pep604-annotation-union",
+    "non-pep646-unpack",
+    "non-pep695-generic-class",
+    "non-pep695-generic-function",
+    "non-pep695-type-alias",
+    "open-alias",
+    "os-error-alias",
+    "outdated-version-block",
+    "printf-string-formatting",
+    "private-type-parameter",
+    "quoted-annotation",
+    "redundant-open-modes",
+    "replace-stdout-stderr",
+    "replace-str-enum",
+    "replace-universal-newlines",
+    "super-call-with-parameters",
+    "timeout-error-alias",
+    "type-of-primitive",
+    "typing-text-str-alias",
+    "unicode-kind-prefix",
+    "unnecessary-builtin-import",
+    "unnecessary-class-parentheses",
+    "unnecessary-default-type-args",
+    "unnecessary-encode-utf8",
+    "unnecessary-future-import",
+    "useless-class-metaclass-type",
+    "useless-metaclass-type",
+    "useless-object-inheritance",
+    "utf8-encoding-declaration",
+    "while-one",
+    "yield-in-for-loop",
+    "debugger", # Flake8 Debugger
+    "unnecessary-call-around-sorted", # flake8 comprehensions
+    "unnecessary-collection-call",
+    "unnecessary-comprehension",
+    "unnecessary-comprehension-in-call",
+    "unnecessary-dict-comprehension-for-iterable",
+    "unnecessary-double-cast-or-process",
+    "unnecessary-generator-dict",
+    "unnecessary-generator-list",
+    "unnecessary-generator-set",
+    "unnecessary-list-call",
+    "unnecessary-list-comprehension-dict",
+    "unnecessary-list-comprehension-set",
+    "unnecessary-literal-dict",
+    "unnecessary-literal-set",
+    "unnecessary-literal-within-dict-call",
+    "unnecessary-literal-within-list-call",
+    "unnecessary-literal-within-tuple-call",
+    "unnecessary-map",
+    "unnecessary-subscript-reversal",
+    "complex-structure", # mccabe complexity
+    "builtin-argument-shadowing", # flake8 builtins shadowing
+    "builtin-attribute-shadowing",
+    "builtin-import-shadowing",
+    "builtin-lambda-argument-shadowing",
+    "builtin-variable-shadowing",
+    "stdlib-module-shadowing",
+    "explicit-string-concatenation", # flake8 implicit string concatenation
+    "implicit-string-concatenation-in-collection-literal",
+    "multi-line-implicit-string-concatenation",
+    "single-line-implicit-string-concatenation",
+    "direct-logger-instantiation", # flake8 logging
+    "exc-info-outside-except-handler",
+    "exception-without-exc-info",
+    "invalid-get-logger-argument",
+    "log-exception-outside-except-handler",
+    "root-logger-call",
+    "undocumented-warn",
+    "duplicate-class-field-definition", # flake8 pie
+    "multiple-starts-ends-with",
+    "non-unique-enums",
+    "reimplemented-container-builtin",
+    "unnecessary-dict-kwargs",
+    "unnecessary-placeholder",
+    "unnecessary-range-start",
+    "unnecessary-spread",
+    "p-print", # flake8 prints
+    "print",
+    "avoidable-escaped-quote", # flake8 quotes
+    "bad-quotes-docstring",
+    "bad-quotes-inline-string",
+    "bad-quotes-multiline-string",
+    "unnecessary-escaped-quote",
+    "unnecessary-paren-on-raise-exception", # flake8 raise
+    "collapsible-if", # flake8 simplify
+    "compare-with-tuple",
+    "dict-get-with-none-default",
+    "double-negation",
+    "duplicate-isinstance-call",
+    "enumerate-for-loop",
+    "expr-and-false",
+    "expr-and-not-expr",
+    "expr-or-not-expr",
+    "expr-or-true",
+    "if-else-block-instead-of-dict-get",
+    "if-else-block-instead-of-dict-lookup",
+    "if-else-block-instead-of-if-exp",
+    "if-expr-with-false-true",
+    "if-expr-with-true-false",
+    "if-expr-with-twisted-arms",
+    "if-with-same-arms",
+    "in-dict-keys",
+    "multiple-with-statements",
+    "needless-bool",
+    "negate-equal-op",
+    "negate-not-equal-op",
+    "open-file-with-context-handler",
+    "reimplemented-builtin",
+    "return-in-try-except-finally",
+    "split-static-string",
+    "suppressible-exception",
+    "uncapitalized-environment-variables",
+    "yoda-conditions",
+    "zip-dict-keys-and-values",
+    "banned-api", # flake8 tidy imports
+    "banned-module-level-imports",
+    "lazy-import-immediately-resolved",
+    "lazy-import-mismatch",
+    "relative-imports",
+    "empty-type-checking-block", # flake8 type checking
+    "quoted-type-alias",
+    "runtime-cast-value",
+    "runtime-import-in-type-checking-block",
+    "runtime-string-union",
+    "typing-only-first-party-import",
+    "typing-only-standard-library-import",
+    "typing-only-third-party-import",
+    "unquoted-type-alias",
+    "unused-class-method-argument", # flake8 unused arguments
+    "unused-function-argument",
+    "unused-lambda-argument",
+    "unused-method-argument",
+    "unused-static-method-argument",
+    "invalid-todo-capitalization", # flake8 todos
+    "invalid-todo-tag",
+    "missing-space-after-todo-colon",
+    "missing-todo-author",
+    "missing-todo-colon",
+    "missing-todo-description",
+    "missing-todo-link",
+    "commented-out-code", # eradicate commented out code
+    "blanket-noqa", # pygrep hooks
+    "blanket-type-ignore",
+    "invalid-mock-access",
+    "static-join-to-f-string", # flyint f-strings
+    "numpy-deprecated-function", # numpy rules
+    "numpy-deprecated-type-alias",
+    "numpy-legacy-random",
+    "numpy2-deprecation",
+    "incorrect-dict-iterator", # perflint
+    "manual-dict-comprehension",
+    "manual-list-comprehension",
+    "manual-list-copy",
+    "try-except-in-loop",
+    "unnecessary-list-cast",
+    "docstring-extraneous-parameter", # pydoclint
+    "docstring-extraneous-returns",
+    "docstring-extraneous-yields",
+    "docstring-missing-exception",
+    "docstring-missing-returns",
+    "docstring-missing-yields",
+    "prohibited-trailing-comma", # Flake 8 trailing commas
+    "trailing-comma-on-bare-tuple",
+    "import-outside-top-level", # import-outside-top-level
+    "collection-literal-concatenation", # Ruff collection concatenation
+    "mutable-dataclass-default", # Ruff dataclasses mutable defaults
+    "mutable-class-default", # Ruff mutable class default
+    "missing-f-string-syntax", # Missing f-string syntax
 ]
 
 ignore = [
-    "D100", # Missing docstring in public module
-    "D104", # Missing docstring in public package
-    "D107", # Missing docstring in __init__
-    "COM812", # Trailing comma. Already enforced by the formatter.
-    "DOC502", # Raises documented in docstring that are not explicit in the code
-    "UP045" # Optional[X] is compatible with Python 3.9; X | None requires 3.10+
+    "undocumented-public-module", # Missing docstring in public module
+    "undocumented-public-package", # Missing docstring in public package
+    "undocumented-public-init", # Missing docstring in __init__
+    "missing-trailing-comma", # Trailing comma. Already enforced by the formatter.
+    "docstring-extraneous-exception", # Raises documented in docstring that are not explicit in the code
+    "non-pep604-annotation-optional" # Optional[X] is compatible with Python 3.9; X | None requires 3.10+
 ]
 
 [lint.per-file-ignores]
-"__init__.py" = ["F403"] # Import with wildcard (*)
+"__init__.py" = ["undefined-local-with-import-star"] # Import with wildcard (*)
 "tests/*" = [
-    "D", # Docstring rules
+    "blank-line-after-function", # Docstring rules
+    "blank-line-before-class",
+    "blank-line-before-function",
+    "blank-lines-between-header-and-content",
+    "docstring-starts-with-this",
+    "docstring-tab-indentation",
+    "empty-docstring",
+    "empty-docstring-section",
+    "escape-sequence-in-docstring",
+    "first-word-uncapitalized",
+    "incorrect-blank-line-after-class",
+    "incorrect-blank-line-before-class",
+    "incorrect-section-order",
+    "mismatched-section-underline-length",
+    "missing-blank-line-after-last-section",
+    "missing-blank-line-after-summary",
+    "missing-dashed-underline-after-section",
+    "missing-new-line-after-section-name",
+    "missing-section-name-colon",
+    "missing-section-underline-after-name",
+    "missing-terminal-punctuation",
+    "missing-trailing-period",
+    "multi-line-summary-first-line",
+    "multi-line-summary-second-line",
+    "new-line-after-last-paragraph",
+    "no-blank-line-after-section",
+    "no-blank-line-before-section",
+    "non-capitalized-section-name",
+    "non-imperative-mood",
+    "over-indentation",
+    "overindented-section",
+    "overindented-section-underline",
+    "overload-with-docstring",
+    "property-docstring-starts-with-verb",
+    "signature-in-docstring",
+    "surrounding-whitespace",
+    "triple-single-quotes",
+    "under-indentation",
+    "undocumented-magic-method",
+    "undocumented-param",
+    "undocumented-public-class",
+    "undocumented-public-function",
+    "undocumented-public-init",
+    "undocumented-public-method",
+    "undocumented-public-module",
+    "undocumented-public-nested-class",
+    "undocumented-public-package",
+    "unnecessary-multiline-docstring",
 ]
