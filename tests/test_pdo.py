@@ -494,7 +494,7 @@ def test_start_pdos_defaults_to_all_aliases_on_selected_network(mocker) -> None:
 
     mc.capture.pdo.start_pdos(servo="selector")
 
-    activate_mock.assert_called_once_with(refresh_rate=None, watchdog_timeout=None)
+    activate_mock.assert_called_once_with(refresh_rate=None, watchdog_timeout=None, group=None)
     send_subscription_mock.assert_has_calls(
         [mocker.call(callbacks["selector"]), mocker.call(callbacks["peer"])],
         any_order=True,
