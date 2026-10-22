@@ -151,7 +151,7 @@ class FSoEMaster:
             # surface as spurious CRC/connection-id errors (e.g. DATA_FAIL1).
             time.sleep(max_watchdog_timeout)
 
-    def _handler_aliases_by_network(self) -> dict[str, list[str]]:
+    def _servo_aliases_by_network(self) -> dict[str, list[str]]:
         """Group registered FSoE servo aliases by their EtherCAT network.
 
         Returns:
@@ -165,7 +165,7 @@ class FSoEMaster:
 
     def _start_pdos_for_handlers(self) -> None:
         """Start PDO exchange once per network for registered FSoE servos."""
-        for aliases in self._handler_aliases_by_network().values():
+        for aliases in self._servo_aliases_by_network().values():
             # No alias is privileged: all resolve to this network. The API needs one alias
             # to find it, so use the first registered handler; `servos` selects participants.
             network_selector_alias = aliases[0]
@@ -173,7 +173,7 @@ class FSoEMaster:
 
     def _stop_pdos_for_handlers(self) -> None:
         """Stop PDO exchange once per network used by registered FSoE servos."""
-        for aliases in self._handler_aliases_by_network().values():
+        for aliases in self._servo_aliases_by_network().values():
             # No alias is privileged; `stop_pdos` needs one to locate this network.
             network_selector_alias = aliases[0]
             self.__mc.capture.pdo.stop_pdos(servo=network_selector_alias)
