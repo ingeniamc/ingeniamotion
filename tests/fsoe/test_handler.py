@@ -242,7 +242,7 @@ def test_constructor_random_connection_id(
 
 @pytest.mark.fsoe
 def test_pass_through_states(
-    mc_state_data: "MotionController",  # noqa: ARG001
+    mc_state_data: "MotionController",  # ruff: ignore[unused-function-argument]
     fsoe_states: list["FSoEState"],
 ) -> None:
     assert fsoe_states == [
@@ -255,7 +255,7 @@ def test_pass_through_states(
 
 @pytest.mark.fsoe
 def test_pass_through_states_sra(
-    mc_state_data_with_sra: "MotionController",  # noqa: ARG001
+    mc_state_data_with_sra: "MotionController",  # ruff: ignore[unused-function-argument]
     fsoe_states: list["FSoEState"],
 ) -> None:
     assert fsoe_states == [

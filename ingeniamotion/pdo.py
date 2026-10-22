@@ -397,7 +397,7 @@ class PDONetworkManager:
             list
         )
 
-    def __evaluate_subscriptions(self, net: EthercatNetwork, alias: str) -> None:  # noqa: C901
+    def __evaluate_subscriptions(self, net: EthercatNetwork, alias: str) -> None:  # ruff: ignore[complex-structure]
         for servo, callbacks in self.__send_process_data_add_callback.items():
             if servo != alias:
                 continue

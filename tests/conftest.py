@@ -132,13 +132,13 @@ def pytest_sessionstart(session):
 
 
 @pytest.hookimpl(tryfirst=True)
-def pytest_configure(config):  # noqa: ARG001
+def pytest_configure(config):  # ruff: ignore[unused-function-argument]
     # https://novantamotion.atlassian.net/browse/INGM-627
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
 def pytest_collection_modifyitems(
-    session: pytest.Session,  # noqa: ARG001
+    session: pytest.Session,  # ruff: ignore[unused-function-argument]
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
@@ -283,7 +283,7 @@ def stoppable_profiler_config() -> "StoppableProfilerConfig":
     Returns:
         The stoppable profiler configuration.
     """
-    from summit_testing_framework.profilers.stoppable_gaps import (  # noqa: PLC0415
+    from summit_testing_framework.profilers.stoppable_gaps import (  # ruff: ignore[import-outside-top-level]
         StoppableProfilerConfig,
     )
 
@@ -310,7 +310,7 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
     for register_uid in register_uids:
         try:
             servo.read(register_uid)
-        except ILRegisterNotFoundError:  # noqa: PERF203
+        except ILRegisterNotFoundError:  # ruff: ignore[try-except-in-loop]
             logger.warning(
                 f"Register {register_uid} not found during refresh after test execution."
             )
