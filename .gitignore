@@ -62,7 +62,6 @@ venv
 _docs
 _pdf
 docs/_build/*
-
 #pytest
 .coverage
 
