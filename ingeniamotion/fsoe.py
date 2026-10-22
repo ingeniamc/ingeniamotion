@@ -109,7 +109,19 @@ class FSoEMaster:
                 the PDO exchange should be started after. ``False`` by default.
             start_master: if ``True``, start the FSoE master handlers after
                 configuring the PDOs. ``False`` by default.
+
+        Raises:
+            RuntimeError: If PDO exchange is requested while an FSoE master handler is stopped.
         """
+        if (
+            start_pdos
+            and not start_master
+            and any(not master_handler.running for master_handler in self._handlers.values())
+        ):
+            raise RuntimeError(
+                "Cannot start PDO exchange before all FSoE master handlers are running."
+            )
+
         self._configure_and_set_pdo_maps_to_slaves()
         if start_master:
             self.start_master(start_pdos=start_pdos)
