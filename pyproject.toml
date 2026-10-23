@@ -20,12 +20,12 @@ classifiers = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "ingenialink>=7.6.2",
+    "ingenialink>=7.6.3",
     "ingenialogger>=0.2.1",
     "ifaddr==0.2.0",
     "exceptiongroup>=1.3.0, <2.0.0",
     "numpy>=2.0,<2.1",
-    "virtual_drive>=0.1.0"
+    "virtual_drive>=0.1.2"
 ]
 
 [project.urls]
@@ -121,8 +121,8 @@ pytest-console-scripts = "==1.4.1"
 pytest-subtests = "==0.15.0"
 matplotlib = "==3.9.4"
 summit-testing-framework = {version = "0.3.1.post874+pr.170.b18"}
-ingenialink = {version = "7.6.2.post447+develop.f518038"}
-virtual_drive = {version = "0.1.1.post345+develop.ce01ac3"}
+ingenialink = "==7.6.3"
+virtual_drive = "==0.1.2"
 
 # -----------------------------------------------------------------------
 #                                   TASKS

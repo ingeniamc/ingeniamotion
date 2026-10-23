@@ -2339,14 +2339,14 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.2.post447+develop.f518038"
+version = "7.6.3"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.2.post447+develop.f518038-py3-none-any.whl", hash = "sha256:e655beed17839a6a586d615ae3b60ea9e499f057e2222dd84d8b957d4a28fd92"},
-    {file = "ingenialink-7.6.2.post447+develop.f518038.tar.gz", hash = "sha256:77ddd5a4678f3d203c1e49c11cd6d51cdbe258feeb268241703ea1a6c58c42c2"},
+    {file = "ingenialink-7.6.3-py3-none-any.whl", hash = "sha256:7257014c5dd7f2408904c2f2695c432985ad3a81a90df5ea201daeec5d27f720"},
+    {file = "ingenialink-7.6.3.tar.gz", hash = "sha256:8756130897e86e73265c718f6f0dabd449ff6132a5f2f2ef82cad7a6ce0bbf5b"},
 ]
 
 [package.dependencies]
@@ -2360,11 +2360,6 @@ numpy = ">=1.26.0"
 ping3 = "5.1.5"
 pysoem = ">=1.1.13,<1.2.0"
 python-can = "4.6.1"
-
-[package.source]
-type = "legacy"
-url = "http://pypi.novanta.com/simple"
-reference = "novanta"
 
 [[package]]
 name = "ingenialogger"
@@ -6585,6 +6580,7 @@ groups = ["tests"]
 files = [
     {file = "summit_testing_framework-0.3.1.post874+pr.170.b18-py3-none-any.whl", hash = "sha256:1668ea57e1400d2132b83192938feac140571a697444ec1344273d1903f13a86"},
 ]
+develop = false
 
 [package.dependencies]
 exceptiongroup = ">=1.3.1,<2.0.0"
@@ -6605,9 +6601,10 @@ ingenialink = ["ingenialink (>=7.6.2)"]
 ingeniamotion = ["ingeniamotion[fsoe] (>=0.10.4)"]
 
 [package.source]
-type = "legacy"
-url = "http://pypi.novanta.com/simple"
-reference = "novanta"
+type = "git"
+url = "https://github.com/CeleraMotion/summit-testing-framework.git"
+reference = "7d58fec6665a7afd5af95ae0aa7d31d9a42ff51a"
+resolved_reference = "7d58fec6665a7afd5af95ae0aa7d31d9a42ff51a"
 
 [[package]]
 name = "tinycss2"
@@ -6867,27 +6864,22 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.1.1.post345+develop.ce01ac3"
+version = "0.1.2"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "virtual_drive-0.1.1.post345+develop.ce01ac3-py3-none-any.whl", hash = "sha256:c243604fd4a5bceef3c492a92bacd77852aa2c3a5d55d31b4c1070c985ce181e"},
+    {file = "virtual_drive-0.1.2-py3-none-any.whl", hash = "sha256:d64681c59e48401989ac0f831a29d100c1391ae1eef81be5804988e4f6e257eb"},
 ]
 
 [package.dependencies]
-ingenialink = ">=7.6.0"
+ingenialink = ">=7.6.3"
 numpy = ">=1.26.0"
 scipy = [
     {version = ">=1.12.0,<1.18.0", markers = "python_version < \"3.12\""},
     {version = ">=1.18.0,<1.19.0", markers = "python_version >= \"3.12\""},
 ]
-
-[package.source]
-type = "legacy"
-url = "http://pypi.novanta.com/simple"
-reference = "novanta"
 
 [[package]]
 name = "virtualenv"
@@ -7380,4 +7372,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "e35be2c151b668d7e5f7aaa6725a1cb742af369545fe1ae045bfd2c6028a0035"
+content-hash = "671e18a1a34f66621a85495d775c6ee073a75a7e24c71520d17fe0d65e061d46"

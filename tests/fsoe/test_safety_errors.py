@@ -296,7 +296,7 @@ class TestFeedbackScenario0:
         timeout_for_data_sra: float,
         servo: "EthercatServo",
         mcu_error_queue_a: "ServoErrorQueue",
-        no_error_tracker: None,  # noqa: ARG002
+        no_error_tracker: None,  # ruff: ignore[unused-method-argument]
     ) -> None:
         """With feedback scenario 0, SS1 time controlled is allowed."""
         mc, handler = configured_handler

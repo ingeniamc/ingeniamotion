@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.5] - 2026-10-16
 ### Added
 - Add SDCP servo support.
 - Add `Axis.feedbacks` (`AxisFeedbacks`), a typed API for configuring and accessing an axis's feedback slots.
@@ -9,6 +9,11 @@
 ### Changed
 - Refactor feedback management around `Axis.feedbacks`; the legacy `Feedbacks` API remains available for backward compatibility.
 - Remove obsolete feedback resolution and polarity helpers, including SinCos resolution support.
+- Return drive-test results as `ReportBase` objects with typed attributes while preserving dictionary compatibility.
+
+### Fixed
+- Suppress stale FSoE replies and teardown errors during master startup and shutdown; wait for the slave watchdog before restarting an FSoE master while PDOs remain active.
+- Apply and restore feedback configurations without exceeding the drive's simultaneous-feedback limit.
 
 ## [0.10.4] - 2026-08-13
 ### Added

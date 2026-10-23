@@ -474,7 +474,7 @@ class FeedbacksConfiguration:
         return tuple(dict.fromkeys(self.__encoders.values()))
 
 
-def _find_feedback_order(  # noqa: C901
+def _find_feedback_order(  # ruff: ignore[complex-structure]
     target_config: FeedbacksConfiguration,
     current_config: FeedbacksConfiguration,
     pending: tuple[FeedbackSlot, ...],

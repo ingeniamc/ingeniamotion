@@ -198,7 +198,7 @@ class FeedbacksTest(BaseTest[ReportBase]):
                 self.mc.communication.set_register(
                     following_error_uid, 1, servo=self.servo, axis=self.axis
                 )
-            except IMRegisterNotExistError as e:  # noqa: PERF203
+            except IMRegisterNotExistError as e:  # ruff: ignore[try-except-in-loop]
                 self.logger.warning(e)
 
     @property
