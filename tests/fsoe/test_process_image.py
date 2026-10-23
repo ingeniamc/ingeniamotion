@@ -698,10 +698,10 @@ def test_map_safety_input_output_random(
     random_paddings: bool,
     fsoe_states: list[FSoEState],
     servo: "EthercatServo",
-    no_error_tracker: None,  # noqa: ARG001
+    no_error_tracker: None,  # ruff: ignore[unused-function-argument]
     mcu_error_queue_a: "ServoErrorQueue",
     mcu_error_queue_b: "ServoErrorQueue",
-    iteration: int,  # noqa: ARG001
+    iteration: int,
 ) -> None:
     """Tests that random combinations of inputs and outputs are valid."""
     mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
@@ -765,7 +765,7 @@ def test_map_all_safety_functions(
     fsoe_maps_dir: Path,
     fsoe_states: list[FSoEState],
     servo: "EthercatServo",
-    no_error_tracker: None,  # noqa: ARG001
+    no_error_tracker: None,  # ruff: ignore[unused-function-argument]
     mcu_error_queue_a: "ServoErrorQueue",
     mcu_error_queue_b: "ServoErrorQueue",
 ) -> None:

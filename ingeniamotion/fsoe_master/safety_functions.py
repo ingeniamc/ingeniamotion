@@ -1,4 +1,3 @@
-# ruff: noqa: ERA001, PERF203
 import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass

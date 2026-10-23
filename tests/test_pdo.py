@@ -181,7 +181,7 @@ def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> N
 
 
 @pytest.mark.soem_multislave
-def test_start_pdos(  # noqa: C901
+def test_start_pdos(  # ruff: ignore[complex-structure]
     mc: "MotionController", alias: list[str]
 ) -> None:
     rpdo_values = {}

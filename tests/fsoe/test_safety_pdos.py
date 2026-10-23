@@ -74,7 +74,7 @@ def test_start_pdos_without_starting_safety_master(
     servo: "EthercatServo",
     exceptions: list[Exception],
     received_data: list[float],
-    create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # noqa: ARG001
+    create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # ruff: ignore[unused-function-argument]
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -101,7 +101,7 @@ def test_stop_master_while_pdos_are_still_active(
     received_data: list[float],
     net: "EthercatNetwork",
     alias: str,
-    create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # noqa: ARG001
+    create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # ruff: ignore[unused-function-argument]
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
