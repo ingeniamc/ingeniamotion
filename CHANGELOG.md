@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Allow `capture.pdo.start_pdos()` to limit PDO exchange to selected servo aliases with the `servos` argument.
+- Integrate FSoE handlers with selected PDO participation, starting the exchange once per network for servos with registered handlers.
+
+### Fixed
+- Prevent PDO exchange from starting while an FSoE master handler is stopped, unless the same call starts the master.
+
 ## [0.10.5] - 2026-10-16
 ### Added
 - Add SDCP servo support.

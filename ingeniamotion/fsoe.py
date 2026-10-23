@@ -98,8 +98,7 @@ class FSoEMaster:
             master_handler.start()
 
         if start_pdos:
-            for servo in self._handlers:
-                self.__mc.capture.pdo.start_pdos(servo=servo)
+            self._start_pdos_for_handlers()
 
     def configure_pdos(self, start_pdos: bool = False, start_master: bool = False) -> None:
         """Configure the PDOs used for the Safety PDUs.
@@ -109,13 +108,24 @@ class FSoEMaster:
                 the PDO exchange should be started after. ``False`` by default.
             start_master: if ``True``, start the FSoE master handlers after
                 configuring the PDOs. ``False`` by default.
+
+        Raises:
+            RuntimeError: If PDO exchange is requested while an FSoE master handler is stopped.
         """
+        if (
+            start_pdos
+            and not start_master
+            and any(not master_handler.running for master_handler in self._handlers.values())
+        ):
+            raise RuntimeError(
+                "Cannot start PDO exchange before all FSoE master handlers are running."
+            )
+
         self._configure_and_set_pdo_maps_to_slaves()
         if start_master:
             self.start_master(start_pdos=start_pdos)
         elif start_pdos:
-            for servo in self._handlers:
-                self.__mc.capture.pdo.start_pdos(servo=servo)
+            self._start_pdos_for_handlers()
 
     def stop_master(self, stop_pdos: bool = False) -> None:
         """Stop all the FSoE Master handlers.
@@ -130,8 +140,7 @@ class FSoEMaster:
                 max_watchdog_timeout = max(max_watchdog_timeout, master_handler.watchdog_timeout)
                 master_handler.stop()
         if stop_pdos:
-            for servo in self._handlers:
-                self.__mc.capture.pdo.stop_pdos(servo=servo)
+            self._stop_pdos_for_handlers()
         elif max_watchdog_timeout > 0:
             # PDOs are still active, so the safety PDU bytes keep being sent to the
             # slave with frozen content (same command/sequence/CRC) since the master
@@ -141,6 +150,33 @@ class FSoEMaster:
             # slave that still believes the previous session is alive, which would
             # surface as spurious CRC/connection-id errors (e.g. DATA_FAIL1).
             time.sleep(max_watchdog_timeout)
+
+    def _servo_aliases_by_network(self) -> dict[str, list[str]]:
+        """Group registered FSoE servo aliases by their EtherCAT network.
+
+        Returns:
+            A mapping from network aliases to their FSoE servo aliases in registration order.
+        """
+        aliases_by_network: dict[str, list[str]] = {}
+        for servo in self._handlers:
+            network_alias = self.__mc.servo_net[servo]
+            aliases_by_network.setdefault(network_alias, []).append(servo)
+        return aliases_by_network
+
+    def _start_pdos_for_handlers(self) -> None:
+        """Start PDO exchange once per network for registered FSoE servos."""
+        for aliases in self._servo_aliases_by_network().values():
+            # No alias is privileged: all resolve to this network. The API needs one alias
+            # to find it, so use the first registered handler; `servos` selects participants.
+            network_selector_alias = aliases[0]
+            self.__mc.capture.pdo.start_pdos(servo=network_selector_alias, servos=set(aliases))
+
+    def _stop_pdos_for_handlers(self) -> None:
+        """Stop PDO exchange once per network used by registered FSoE servos."""
+        for aliases in self._servo_aliases_by_network().values():
+            # No alias is privileged; `stop_pdos` needs one to locate this network.
+            network_selector_alias = aliases[0]
+            self.__mc.capture.pdo.stop_pdos(servo=network_selector_alias)
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.
