@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.23') _
+@Library('cicd-lib@bc76f39') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -73,6 +73,8 @@ PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvM
 TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
+    useTimeline: false,
+    useProfilers: false,
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     enableFirmwareVersionCheck: true,
@@ -141,7 +143,13 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
         default: DEFAULT_LOGGING_LEVEL,
     ],
     wiresharkLoggingConfig: [
-        default: true,
+        default: PyTestParams.BooleanParameterDefault.TRUE_ONLY_ON_DEVELOP_BRANCH,
+    ],
+    timelineConfig: [
+        default: PyTestParams.BooleanParameterDefault.TRUE_ONLY_ON_DEVELOP_BRANCH,
+    ],
+    profilersConfig: [
+        default: PyTestParams.BooleanParameterDefault.TRUE_ONLY_ON_DEVELOP_BRANCH,
     ],
     checkStateScopeConfig: [
         default: 'session',
@@ -213,12 +221,14 @@ pipeline {
                         checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
-                        logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
+                        logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel'),
+                        useTimeline: PyTestParams.readValue(params, 'timeline', env, currentBuild),
+                        useProfilers: PyTestParams.readValue(params, 'profilers', env, currentBuild)
                     )
+                    def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
 
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
-                    def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
                     ECAT_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
                     ETH_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
                     // Sirius tests should only run on python 3.12
@@ -294,7 +304,11 @@ pipeline {
                                 stage('Check Dependencies') {
                                     steps {
                                         script {
-                                            checkDependencies(excludeManagers: ['poetry:tests', 'git_submodules'])
+                                            def excludeManagers = ['poetry:tests', 'git_submodules']
+                                            if (env.BRANCH_NAME != 'master' && !env.BRANCH_NAME.startsWith('release/')) {
+                                                excludeManagers.add('jenkins_shared_library')
+                                            }
+                                            checkDependencies(excludeManagers: excludeManagers)
                                         }
                                     }
                                 }
