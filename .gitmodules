@@ -4,4 +4,4 @@
 [submodule "tools/rulesets"]
 	path = tools/rulesets
 	url = git@github.com:CeleraMotion/drives-sw-rulesets.git
-	branch = CIT-887-extract-common-ruff-rules
+	branch = main
