@@ -1,60 +1,76 @@
-preview = true
-line-length = 100
+extend = "tools/rulesets/ruff/ruff.toml"
 target-version = "py39"
 exclude = ["tests/setups/tests_setup.py", "ingeniamotion/_version.py"]
+extend-exclude = ["tools/rulesets"]
 
 [lint]
 pydocstyle.convention = "google"
 flake8-unused-arguments.ignore-variadic-names = true
 
-select = [
-    "F", # Pyflakes
-    "E", # pycodestyle
-    "W", # pycodestyle
-    "I", # isort
-    "N", # pep8-naming
-    "D", # pydocstyle
-    "UP", # pyupgrade
-    "T10", # Flake8 Debugger
-    "C4", # flake8 comprehensions
-    "C90", # mccabe complexity
-    "A", # flake8 builtins shadowing
-    "ISC", # flake8 implicit string concatenation
-    "LOG", # flake8 logging
-    "PIE", # flake8 pie
-    "T20", # flake8 prints
-    "Q", # flake8 quotes
-    "RSE", # flake8 raise
-    "SIM", # flake8 simplify
-    "TID", # flake8 tidy imports
-    "TC", # flake8 type checking
-    "ARG", # flake8 unused arguments
-    "TD", # flake8 todos
-    "ERA", # eradicate commented out code
-    "PGH", # pygrep hooks
-    "FLY", # flyint f-strings
-    "NPY", # numpy rules
-    "PERF", # perflint
-    "DOC", # pydoclint
-    "COM", # Flake 8 trailing commas
-    "PLC0415", # import-outside-top-level
-    "RUF005", # Ruff collection concatenation
-    "RUF008", # Ruff dataclasses mutable defaults
-    "RUF012", # Ruff mutable class default
-    "RUF027", # Missing f-string syntax
-]
 
 ignore = [
-    "D100", # Missing docstring in public module
-    "D104", # Missing docstring in public package
-    "D107", # Missing docstring in __init__
-    "COM812", # Trailing comma. Already enforced by the formatter.
-    "DOC502", # Raises documented in docstring that are not explicit in the code
-    "UP045" # Optional[X] is compatible with Python 3.9; X | None requires 3.10+
+    "undocumented-public-module", # Missing docstring in public module
+    "undocumented-public-package", # Missing docstring in public package
+    "undocumented-public-init", # Missing docstring in __init__
+    "missing-trailing-comma", # Trailing comma. Already enforced by the formatter.
+    "docstring-extraneous-exception", # Raises documented in docstring that are not explicit in the code
+    "non-pep604-annotation-optional" # Optional[X] is compatible with Python 3.9; X | None requires 3.10+
+]
+extend-select = [
+    "complex-structure", # mccabe complexity
+    "single-line-implicit-string-concatenation",
+    "import-outside-top-level", # import-outside-top-level
 ]
 
 [lint.per-file-ignores]
-"__init__.py" = ["F403"] # Import with wildcard (*)
+"__init__.py" = ["undefined-local-with-import-star"] # Import with wildcard (*)
 "tests/*" = [
-    "D", # Docstring rules
+    "blank-line-after-function", # Docstring rules
+    "blank-line-before-class",
+    "blank-line-before-function",
+    "blank-lines-between-header-and-content",
+    "docstring-starts-with-this",
+    "docstring-tab-indentation",
+    "empty-docstring",
+    "empty-docstring-section",
+    "escape-sequence-in-docstring",
+    "first-word-uncapitalized",
+    "incorrect-blank-line-after-class",
+    "incorrect-blank-line-before-class",
+    "incorrect-section-order",
+    "mismatched-section-underline-length",
+    "missing-blank-line-after-last-section",
+    "missing-blank-line-after-summary",
+    "missing-dashed-underline-after-section",
+    "missing-new-line-after-section-name",
+    "missing-section-name-colon",
+    "missing-section-underline-after-name",
+    "missing-terminal-punctuation",
+    "missing-trailing-period",
+    "multi-line-summary-first-line",
+    "multi-line-summary-second-line",
+    "new-line-after-last-paragraph",
+    "no-blank-line-after-section",
+    "no-blank-line-before-section",
+    "non-capitalized-section-name",
+    "non-imperative-mood",
+    "over-indentation",
+    "overindented-section",
+    "overindented-section-underline",
+    "overload-with-docstring",
+    "property-docstring-starts-with-verb",
+    "signature-in-docstring",
+    "surrounding-whitespace",
+    "triple-single-quotes",
+    "under-indentation",
+    "undocumented-magic-method",
+    "undocumented-param",
+    "undocumented-public-class",
+    "undocumented-public-function",
+    "undocumented-public-init",
+    "undocumented-public-method",
+    "undocumented-public-module",
+    "undocumented-public-nested-class",
+    "undocumented-public-package",
+    "unnecessary-multiline-docstring",
 ]

@@ -358,7 +358,7 @@ def test_random_map_validation(
     random_seed: int,
     random_max_items: int,
     random_paddings: bool,
-    iteration: int,  # noqa: ARG001
+    iteration: int,  # ruff: ignore[unused-function-argument]
 ) -> None:
     _, handler = mc_with_fsoe_with_sra
 

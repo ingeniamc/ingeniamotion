@@ -2,7 +2,7 @@ from . import enums
 from .motion_controller import MotionController
 
 try:
-    from ._version import __version__  # noqa: F401
+    from ._version import __version__
 except ModuleNotFoundError:
     __version__ = "development"
 

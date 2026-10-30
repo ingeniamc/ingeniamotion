@@ -80,7 +80,7 @@ def test_exception_group_context_error():
 
 def test_exception_group_lets_non_catched_through():
     """Test that exceptions that are not caught by the catch context manager are propagated."""
-    with pytest.raises(NotImplementedError):  # noqa: SIM117
+    with pytest.raises(NotImplementedError):  # ruff: ignore[multiple-with-statements]
         with IMErrorQueueNotExistsError.group("Message of the group") as eg:
             with eg.catch(KeyError, ValueError):
                 raise NotImplementedError("Test KeyError")

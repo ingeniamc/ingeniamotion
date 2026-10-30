@@ -121,8 +121,8 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 pytest-subtests = "==0.15.0"
 matplotlib = "==3.9.4"
-summit-testing-framework = {version = "0.3.1.post857+develop.8c6e743"}
-ingenialink = {version = "7.6.3.post120+pr.947.b21"}
+summit-testing-framework = {version = "0.3.1.post895+develop.aadbcca"}
+ingenialink = {version = "7.6.3.post150+pr.947.b2"}
 virtual_drive = "==0.1.2"
 
 # -----------------------------------------------------------------------

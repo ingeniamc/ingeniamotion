@@ -1,3 +1,7 @@
 [submodule "summit_drives_ci_configs"]
 	path = summit_drives_ci_configs
 	url = git@github.com:CeleraMotion/summit_drives_ci_configs.git
+[submodule "tools/rulesets"]
+	path = tools/rulesets
+	url = git@github.com:CeleraMotion/drives-sw-rulesets.git
+	branch = main
