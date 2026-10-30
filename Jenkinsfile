@@ -77,7 +77,7 @@ TestSession TEST_SESSIONS = new TestSession(
     useProfilers: false,
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
-    enableFirmwareVersionCheck: true,
+    enableSetupCompatibilityCheck: true,
     setAttApiToken: true
 )
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
