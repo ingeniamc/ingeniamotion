@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.ethercat.slave_group import EthercatSlaveGroup
 from ingenialink.exceptions import ILError
 from ingenialink.pdo import PDOMap, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialogger import get_logger
@@ -195,6 +196,7 @@ class PDONetwork:
     network: EthercatNetwork
     refresh_rate: Optional[float]
     watchdog_timeout: Optional[float]
+    group: Optional[EthercatSlaveGroup] = None
 
     __pdo_thread_status: bool = False
 
@@ -216,7 +218,10 @@ class PDONetwork:
         return self.__pdo_thread_status
 
     def compare_configuration(
-        self, refresh_rate: Optional[float], watchdog_timeout: Optional[float]
+        self,
+        refresh_rate: Optional[float],
+        watchdog_timeout: Optional[float],
+        group: Optional[EthercatSlaveGroup] = None,
     ) -> bool:
         """Compares the current PDO thread configuration with another.
 
@@ -224,11 +229,16 @@ class PDONetwork:
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
             watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
                 to the refresh rate.
+            group: Connected EtherCAT servos included in the process-data exchange.
 
         Returns:
             True if the configurations are equal, False otherwise.
         """
-        return self.refresh_rate == refresh_rate and self.watchdog_timeout == watchdog_timeout
+        return (
+            self.refresh_rate == refresh_rate
+            and self.watchdog_timeout == watchdog_timeout
+            and self.group == group
+        )
 
     @classmethod
     def create_and_subscribe(
@@ -237,6 +247,7 @@ class PDONetwork:
         network: EthercatNetwork,
         refresh_rate: Optional[float] = None,
         watchdog_timeout: Optional[float] = None,
+        group: Optional[EthercatSlaveGroup] = None,
     ) -> "PDONetwork":
         """Creates a new PDONetwork instance and subscribes to EtherCAT network PDO thread status.
 
@@ -246,6 +257,7 @@ class PDONetwork:
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
             watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
              to the refresh rate.
+            group: Connected EtherCAT servos included in the process-data exchange.
 
         Returns:
             A new PDONetwork instance.
@@ -255,6 +267,7 @@ class PDONetwork:
             network=network,
             refresh_rate=refresh_rate,
             watchdog_timeout=watchdog_timeout,
+            group=group,
         )
         net.network.subscribe_to_pdo_thread_status(callback=net.__pdo_thread_status_callback)
         return net
@@ -287,6 +300,7 @@ class PDONetworksTracker:
         network: EthercatNetwork,
         refresh_rate: Optional[float] = None,
         watchdog_timeout: Optional[float] = None,
+        group: Optional[EthercatSlaveGroup] = None,
     ) -> None:
         """Add a network to the tracker.
 
@@ -296,6 +310,7 @@ class PDONetworksTracker:
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
             watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
              to the refresh rate.
+            group: Connected EtherCAT servos included in the process-data exchange.
 
         Raises:
             IMError: If the network is already tracked with a different configuration.
@@ -306,14 +321,46 @@ class PDONetworksTracker:
                 network=network,
                 refresh_rate=refresh_rate,
                 watchdog_timeout=watchdog_timeout,
+                group=group,
             )
-            network.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
+            network.activate_pdos(
+                refresh_rate=refresh_rate,
+                watchdog_timeout=watchdog_timeout,
+                group=group,
+            )
             return
         if not self.__networks[alias].compare_configuration(
-            refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
+            group=group,
         ):
             raise IMError("Inconsistent PDO thread configuration for already active network.")
         logger.warning("PDOs are already active for this network.")
+
+    def validate_configuration(
+        self,
+        alias: str,
+        refresh_rate: Optional[float],
+        watchdog_timeout: Optional[float],
+        group: Optional[EthercatSlaveGroup],
+    ) -> None:
+        """Validate a network's active configuration before registering callbacks.
+
+        Args:
+            alias: The network alias.
+            refresh_rate: Requested PDO refresh rate.
+            watchdog_timeout: Requested watchdog timeout.
+            group: Requested process-data servos, or ``None`` for defaults.
+
+        Raises:
+            IMError: If the network is active with a different configuration.
+        """
+        if self.is_network_tracked(alias) and not self.__networks[alias].compare_configuration(
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
+            group=group,
+        ):
+            raise IMError("Inconsistent PDO thread configuration for already active network.")
 
     def remove_network(self, alias: str) -> None:
         """Remove a network from the tracker.
@@ -587,17 +634,71 @@ class PDONetworkManager:
             raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
         drive.remove_tpdo_map(tpdo_map=tpdo_map, tpdo_map_index=tpdo_map_index)
 
+    def __resolve_pdo_participants(
+        self,
+        network_alias: str,
+        servos: Optional[set[str]],
+    ) -> tuple[set[str], Optional[EthercatSlaveGroup]]:
+        """Resolve selected servo aliases to EtherCAT servo references.
+
+        Args:
+            network_alias: Alias of the selected network.
+            servos: Selected servo aliases, or ``None`` for the all-network default.
+
+        Returns:
+            A tuple containing the aliases whose subscriptions should be installed and the
+            selected servo group. The group is ``None`` for the default behavior.
+
+        Raises:
+            ValueError: If an alias is unknown or belongs to another network.
+        """
+        aliases_by_network = self.__mc.servo_net
+        if servos is None:
+            return (
+                {
+                    alias
+                    for alias, alias_network in aliases_by_network.items()
+                    if alias_network == network_alias
+                },
+                None,
+            )
+
+        selected_aliases = set(servos)
+        if not selected_aliases:
+            raise ValueError("At least one servo alias must be selected.")
+        invalid_aliases = selected_aliases - set(aliases_by_network)
+        if invalid_aliases:
+            raise ValueError(f"Selected servo aliases are not connected: {sorted(invalid_aliases)}")
+        aliases_from_other_networks = {
+            alias for alias in selected_aliases if aliases_by_network[alias] != network_alias
+        }
+        if aliases_from_other_networks:
+            raise ValueError(
+                f"Selected servo aliases must belong to network '{network_alias}': "
+                f"{sorted(aliases_from_other_networks)}"
+            )
+
+        selected_servos = []
+        for alias in selected_aliases:
+            drive = self.__mc._get_drive(servo=alias)
+            if not isinstance(drive, EthercatServo):
+                raise ValueError(f"Expected an EthercatServo for alias '{alias}'.")
+            selected_servos.append(drive)
+        return selected_aliases, EthercatSlaveGroup(selected_servos)
+
     def start_pdos(
         self,
         network_type: Optional[CommunicationType] = None,
         refresh_rate: Optional[float] = None,
         watchdog_timeout: Optional[float] = None,
         servo: str = DEFAULT_SERVO,
+        servos: Optional[set[str]] = None,
     ) -> None:
         """Start the PDO exchange process.
 
         Warning:
-            Note that the PDO exchange will start for all servos connected to the same network.
+            If `servos` is omitted, PDO exchange starts for all mapped servos on the selected
+            network.
 
         Args:
             network_type: Network type (EtherCAT or CANopen) on which to start the PDO exchange.
@@ -606,10 +707,14 @@ class PDONetworkManager:
              to the refresh rate.
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 If `network_type` is provided, `servo` must be connected to that network.
+            servos: Optional set of servo aliases to include in the process-data group. All
+                selected servos must be connected to the network chosen by `servo`.
 
         Raises:
             ValueError: If the MotionController is not connected to any Network.
             ValueError: If there is a type mismatch retrieving the network object.
+            ValueError: If a selected servo is unknown, belongs to another network, or is not
+                currently discovered on the selected EtherCAT network.
         """
         if network_type in [None, CommunicationType.Ethercat]:
             if len(self.__mc.net) == 0:
@@ -624,12 +729,27 @@ class PDONetworkManager:
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
 
-        self.__evaluate_subscriptions(net=net, alias=servo)
+        net_alias = self.__mc.servo_net[servo]
+        selected_aliases, group = self.__resolve_pdo_participants(
+            network_alias=net_alias, servos=servos
+        )
+        if group is not None:
+            net.validate_slave_group(group)
+
+        self.__net_tracker.validate_configuration(
+            alias=net_alias,
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
+            group=group,
+        )
+        for selected_alias in selected_aliases:
+            self.__evaluate_subscriptions(net=net, alias=selected_alias)
         self.__net_tracker.add_network(
-            alias=self.__mc.servo_net[servo],
+            alias=net_alias,
             network=net,
             refresh_rate=refresh_rate,
             watchdog_timeout=watchdog_timeout,
+            group=group,
         )
 
     def stop_pdos(self, servo: str = DEFAULT_SERVO) -> None:
