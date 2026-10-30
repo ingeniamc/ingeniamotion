@@ -87,8 +87,7 @@ def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
             ),
         ),
         part_number=part_number,
-        min="2.6.0",
-        max="2.10.0",
+        fw_ranges=[("2.6.0", "2.10.0")],
         skip_reason="Flaky test for BISS-C configuration, solved in 2.11.0",
     )
 
