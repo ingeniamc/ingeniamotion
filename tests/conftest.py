@@ -148,7 +148,7 @@ def pytest_collection_modifyitems(
         config: pytest configuration.
         items: collected test items.
     """
-    # Apply firmware version markers to items, skipping tests that do not meet the requirements
+    # Apply setup compatibility markers to items, skipping tests that do not meet the requirements
     apply_marker_results_to_items(config=config, items=items)
 
 
