@@ -1,4 +1,4 @@
-@Library('cicd-lib@ef936e7') _
+@Library('cicd-lib@0.24') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
