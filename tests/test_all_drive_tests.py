@@ -318,8 +318,7 @@ def test_secondary_ssi_test(
 @pytest.mark.canopen
 @pytest.mark.not_valid_version_for_product(
     part_number="CAP-*",
-    min="2.6.0",
-    max="2.10.0",
+    fw_ranges=[("2.6.0", "2.10.0")],
     skip_reason="Flaky test for BISS-C configuration",
 )
 def test_commutation(

@@ -16,9 +16,7 @@ from summit_testing_framework.configuration.feedback_constants import (
     FeedbackSelectorRegisters,
     FeedbackSensorType,
 )
-from summit_testing_framework.pytest_helpers.marker_helper import (
-    apply_firmware_version_markers_to_items,
-)
+from summit_testing_framework.pytest_selection.pytest_adapter import apply_marker_results_to_items
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
     DictionaryVersion,
@@ -87,8 +85,7 @@ def forbids_biss_c_configuration(part_number: str) -> pytest.MarkDecorator:
             ),
         ),
         part_number=part_number,
-        min="2.6.0",
-        max="2.10.0",
+        fw_ranges=[("2.6.0", "2.10.0")],
         skip_reason="Flaky test for BISS-C configuration, solved in 2.11.0",
     )
 
@@ -142,17 +139,17 @@ def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
-    """Modifies collected tests to skip those that do not meet firmware version restrictions.
+    """Modifies collected tests to skip those that do not meet setup compatibility restrictions.
 
-    Only runs if --enable_firmware_version_check is passed.
+    Only runs if --enable_setup_compatibility_check is passed.
 
     Args:
         session: pytest session.
         config: pytest configuration.
         items: collected test items.
     """
-    # Apply firmware version markers to items, skipping tests that do not meet the requirements
-    apply_firmware_version_markers_to_items(config=config, items=items)
+    # Apply setup compatibility markers to items, skipping tests that do not meet the requirements
+    apply_marker_results_to_items(config=config, items=items)
 
 
 @pytest.fixture

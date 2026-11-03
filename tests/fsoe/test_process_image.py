@@ -751,12 +751,12 @@ def test_map_safety_input_output_random(
 @pytest.mark.fsoe_phase2
 @pytest.mark.valid_versions_for_product(
     part_number="EVS-S-NET-E",
-    max="2.9.1",
+    fw_ranges=[(None, "2.9.1")],
     skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-597",
 )
 @pytest.mark.valid_versions_for_product(
     part_number="DEN-S-NET-E",
-    max="2.9.1",
+    fw_ranges=[(None, "2.9.1")],
     skip_reason="https://novantamotion.atlassian.net/browse/COMOCOAPP-597",
 )
 def test_map_all_safety_functions(
