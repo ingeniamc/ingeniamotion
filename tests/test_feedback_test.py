@@ -29,7 +29,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_resolution_test impo
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
     DigitalIncremental1Test,
 )
-from tests.conftest import slice_configurations
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -539,7 +538,7 @@ def test_all_feedback_transitions_stay_within_limit_and_reach_target(
 @pytest.mark.soem
 @pytest.mark.canopen
 def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
-    mc, alias, servo, mocker, subtests, setup_specifier
+    mc, alias, servo, mocker, subtests
 ):
     """The feedback test must never exceed the drive feedback limit.
 
@@ -552,7 +551,7 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
     )
 
     configurations = list(_feedback_configurations(mc, alias, axis))
-    for configuration in slice_configurations(configurations, setup_specifier):
+    for configuration in configurations:
         feedbacks = mc.motion_nodes[alias].get_axis(axis).feedbacks
         msg = "_".join(
             sensor.name for sensor in _configuration_sensor_types(configuration, feedbacks)

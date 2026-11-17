@@ -3,7 +3,7 @@ import time
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
@@ -246,29 +246,6 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
-
-
-ConfigurationT = TypeVar("ConfigurationT")
-
-
-def slice_configurations(
-    configurations: list[ConfigurationT], setup_specifier
-) -> list[ConfigurationT]:
-    """Return the configured fraction of test configurations.
-
-    Args:
-        configurations: Randomized test configurations.
-        setup_specifier: Active test setup specifier.
-
-    Returns:
-        All configurations when no slice is configured, otherwise the configured
-        fraction with at least one configuration.
-    """
-    assert configurations, "At least one test configuration is required"
-    configuration_slice = setup_specifier.extra_data.get(RANDOM_COMBINATIONS_SLICE_KEY, None)
-    if configuration_slice is None:
-        return configurations
-    return configurations[: max(1, int(len(configurations) * configuration_slice))]
 
 
 @pytest.fixture(scope="session")
