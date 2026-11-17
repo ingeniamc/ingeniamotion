@@ -4,7 +4,7 @@ import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
-from ingeniamotion.feedbacks import MAX_SIMULTANEOUS_FEEDBACKS, FeedbacksConfiguration
+from ingeniamotion.feedbacks import MAX_SIMULTANEOUS_FEEDBACKS, AxisFeedbacks, FeedbacksConfiguration
 
 if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
@@ -655,4 +655,27 @@ def test_feedback_transition_rejects_target_with_five_sensors(axis: "Axis") -> N
     with pytest.raises(ValueError) as exc_info:
         list(feedbacks.transition_order(current, target))
 
-    assert str(exc_info.value) == "Feedback configurations cannot be transitioned safely."
+    assert str(exc_info.value) == (
+        "Feedback configurations cannot be transitioned safely. "
+        "current: COMMU_ANGLE_SENSOR=QEI, COMMU_ANGLE_REF_SENSOR=QEI, "
+        "CL_VEL_FBK_SENSOR=QEI, CL_POS_FBK_SENSOR=QEI, CL_AUX_FBK_SENSOR=QEI; "
+        "target: COMMU_ANGLE_SENSOR=ABS1, COMMU_ANGLE_REF_SENSOR=QEI, "
+        "CL_VEL_FBK_SENSOR=HALLS, CL_POS_FBK_SENSOR=SSI2, CL_AUX_FBK_SENSOR=BISSC2"
+    )
+
+
+def test_feedbacks_configuration_describe_lists_sensor_per_slot() -> None:
+    """describe() reports each slot's register and sensor type in assignment order."""
+    configuration = FeedbacksConfiguration.from_sensor_types(
+        AxisFeedbacks(object()),
+        commutation=SensorType.QEI,
+        reference=SensorType.HALLS,
+        velocity=SensorType.ABS1,
+        position=SensorType.SSI2,
+        auxiliary=SensorType.BISSC2,
+    )
+
+    assert configuration.describe() == (
+        "COMMU_ANGLE_SENSOR=QEI, COMMU_ANGLE_REF_SENSOR=HALLS, "
+        "CL_VEL_FBK_SENSOR=ABS1, CL_POS_FBK_SENSOR=SSI2, CL_AUX_FBK_SENSOR=BISSC2"
+    )

@@ -436,6 +436,13 @@ class FeedbacksConfiguration:
         """Return the distinct sensor types assigned across all slots."""
         return frozenset(encoder.SENSOR_TYPE for encoder in self.__encoders.values())
 
+    def describe(self) -> str:
+        """Return each slot's register and sensor type, in assignment order."""
+        return ", ".join(
+            f"{slot.register_uid}={encoder.SENSOR_TYPE.name}"
+            for slot, encoder in self.__encoders.items()
+        )
+
     def can_execute_transition(self, slot: FeedbackSlot, encoder: Encoder) -> bool:
         """Return whether the drive accepts assigning an encoder to a slot.
 
@@ -681,7 +688,10 @@ class AxisFeedbacks:
         )
         order = _find_feedback_order(target, current, pending)
         if order is None:
-            raise ValueError("Feedback configurations cannot be transitioned safely.")
+            raise ValueError(
+                "Feedback configurations cannot be transitioned safely. "
+                f"current: {current.describe()}; target: {target.describe()}"
+            )
         yield from order
 
 
